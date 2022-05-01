@@ -1,0 +1,71 @@
+version: "3.9"
+services:
+
+  # Frontend Server
+  proxy:
+    build: ./proxy
+    ports:
+      - "80:80"
+    depends_on:
+      - orchestrator
+      - web-client
+      - web-worker
+      - web-workers-manager
+      - arena
+    networks:
+      - proxy-web-client
+      - proxy-orchestrator
+      - proxy-web-workers-manager
+      - proxy-arena
+      - proxy-web-worker
+
+  # Public HTTP Gateway
+  orchestrator:
+    build: ./orchestrator
+    depends_on:
+      - redis
+    networks:
+      - proxy-orchestrator
+      - redis
+
+  # Public Web Web-client UI
+  web-client:
+    build: ./web-client
+    networks:
+      - proxy-web-client
+  
+  web-workers-manager:
+    build: ./web-workers-manager
+    depends_on:
+      - redis
+    networks:
+      - proxy-web-workers-manager
+      - redis
+
+  arena:
+    build: ./arena
+    depends_on:
+      - redis
+    networks:
+      - redis
+      - proxy-arena
+
+  web-worker:
+    build: ./web-worker
+    depends_on:
+      - web-workers-manager
+    networks:
+      - proxy-web-worker
+  
+  redis:
+    image: "redis:alpine"
+    networks:
+      - redis
+
+networks:
+  proxy-web-client: {}
+  proxy-orchestrator: {}
+  proxy-web-workers-manager: {}
+  proxy-arena: {}
+  proxy-web-worker: {}
+  redis: {}

@@ -1,0 +1,27 @@
+{
+  "name": "arena",
+  "version": "1.0.0",
+  "main": "main.ts",
+  "scripts": {
+    "start": "nodemon --watch . --ignore ./dist --ext json,ts,js --exec npm run serve:dev",
+    "serve:dev": "npm run build && npm run serve",
+    "serve": "node ./dist/main.js",
+    "build": "tsc",
+    "build:watch": "nodemon --watch . --ignore ./dist --ext json,ts,js --exec npm run build"
+  },
+  "author": "Sergei Solovev",
+  "license": "ISC",
+  "description": "",
+  "dependencies": {
+    "@bull-board/express": "^3.10.7",
+    "bull-arena": "^3.29.3",
+    "bullmq": "^1.81.1",
+    "express": "^4.18.1"
+  },
+  "devDependencies": {
+    "@types/bull-arena": "^3.0.5",
+    "@types/bull-board": "^0.6.0",
+    "nodemon": "^2.0.16",
+    "typescript": "^4.6.4"
+  }
+}
