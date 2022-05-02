@@ -21,6 +21,7 @@ async function main() {
     const exe = /^win/.test(process.platform) ? 'npm.cmd' : 'npm';
     await Promise.all([
         run(`${exe} run build --prefix web-client`, false),
+        run(`${exe} run build --prefix worker`, false),
         run(`${exe} run build --prefix browser-worker`, false),
         run(`${exe} run build --prefix browser-workers-manager`, false),
         run(`${exe} run build --prefix arena`, false),

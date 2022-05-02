@@ -51,6 +51,14 @@ services:
       - proxy-browser-workers-manager
       - redis
 
+  worker:
+    build: ./worker
+    restart: always
+    depends_on:
+      - redis
+    networks:
+      - redis
+
   arena:
     build: ./arena
     restart: always
