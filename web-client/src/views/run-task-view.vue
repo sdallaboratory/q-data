@@ -2,8 +2,8 @@
   <label for="task-name">First Name
     <input v-model="task.name" type="text" id="task-name" placeholder="Task Name">
   </label>
-  <button @click="run()">send</button>
-
+  <button @click="runTask()">Run task</button>
+  <button @click="runTask('browser')">Run browser task</button>
 </template>
 
 <script lang="ts">
@@ -12,12 +12,14 @@ import { Options, Vue } from 'vue-class-component';
 @Options({})
 export default class HomeView extends Vue {
   public task = {
-    name: undefined,
-    data: {},
+    type: undefined,
+    params: { id: 'test-id', skip: 343 },
   };
 
-  public async run() {
-    await fetch('/api/tasks', {
+  // TODO: Move to separate type file
+  public async runTask(type: 'default' | 'browser' = 'default') {
+    const uri = type === 'browser' ? '/api/browser-tasks' : '/api/tasks';
+    await fetch(uri, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',

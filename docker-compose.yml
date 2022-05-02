@@ -9,15 +9,15 @@ services:
     depends_on:
       - orchestrator
       - web-client
-      - web-worker
-      - web-workers-manager
+      - browser-worker
+      - browser-workers-manager
       - arena
     networks:
       - proxy-web-client
       - proxy-orchestrator
-      - proxy-web-workers-manager
+      - proxy-browser-workers-manager
       - proxy-arena
-      - proxy-web-worker
+      - proxy-browser-worker
 
   # Public HTTP Gateway
   orchestrator:
@@ -31,15 +31,19 @@ services:
   # Public Web Web-client UI
   web-client:
     build: ./web-client
+    depends_on:
+      - orchestrator
     networks:
       - proxy-web-client
   
-  web-workers-manager:
-    build: ./web-workers-manager
+  browser-workers-manager:
+    build: ./browser-workers-manager
+    ports:
+      - "3000:3000"
     depends_on:
       - redis
     networks:
-      - proxy-web-workers-manager
+      - proxy-browser-workers-manager
       - redis
 
   arena:
@@ -50,12 +54,12 @@ services:
       - redis
       - proxy-arena
 
-  web-worker:
-    build: ./web-worker
+  browser-worker:
+    build: ./browser-worker
     depends_on:
-      - web-workers-manager
+      - browser-workers-manager
     networks:
-      - proxy-web-worker
+      - proxy-browser-worker
   
   redis:
     image: "redis:alpine"
@@ -65,7 +69,7 @@ services:
 networks:
   proxy-web-client: {}
   proxy-orchestrator: {}
-  proxy-web-workers-manager: {}
+  proxy-browser-workers-manager: {}
   proxy-arena: {}
-  proxy-web-worker: {}
+  proxy-browser-worker: {}
   redis: {}

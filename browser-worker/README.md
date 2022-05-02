@@ -1,4 +1,4 @@
-# web-worker
+# browser-worker
 
 ## Project setup
 ```

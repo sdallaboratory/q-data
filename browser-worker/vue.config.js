@@ -2,5 +2,6 @@ const { defineConfig } = require('@vue/cli-service');
 
 module.exports = defineConfig({
   transpileDependencies: true,
-  publicPath: 'web-worker'
+  // TODO: Move to global constants
+  publicPath: '/browser-worker/'
 });

@@ -6,7 +6,7 @@
   "scripts": {
     "start": "nodemon --watch . --ignore ./dist --ext json,ts,js --exec npm run serve:dev",
     "serve:dev": "npm run build && npm run serve",
-    "serve": "node ./dist/orchestrator/main.js",
+    "serve": "node ./dist/orchestrator/src/main.js",
     "build": "tsc",
     "build:watch": "nodemon --watch . --ignore ./dist --ext json,ts,js --exec npm run build"
   },

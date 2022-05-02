@@ -1,12 +1,12 @@
 {
-  "name": "web-workers-manager",
+  "name": "browser-workers-manager",
   "version": "1.0.0",
   "description": "",
   "main": "main.ts",
   "scripts": {
     "start": "nodemon --watch . --ignore ./dist --ext json,ts,js --exec npm run serve:dev",
     "serve:dev": "npm run build && npm run serve",
-    "serve": "node ./dist/web-workers-manager/main.js",
+    "serve": "node ./dist/browser-workers-manager/src/main.js",
     "build": "tsc",
     "build:watch": "nodemon --watch . --ignore ./dist --ext json,ts,js --exec npm run build"
   },

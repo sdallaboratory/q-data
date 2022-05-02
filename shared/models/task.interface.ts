@@ -1,6 +1,6 @@
 
 export interface Task<T = any> {
-    name: string;
+    type: string;
     params?: T;
     deps?: {
         mongo: string;
