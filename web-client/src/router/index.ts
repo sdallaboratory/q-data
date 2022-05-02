@@ -17,6 +17,11 @@ const routes: Array<RouteRecordRaw> = [
     name: 'jobs',
     component: () => import(/* webpackChunkName: "jobs" */ '../views/jobs-view.vue'),
   },
+  {
+    path: '/mongo-express',
+    name: 'mongo-express',
+    component: () => import(/* webpackChunkName: "mongo-express" */ '../views/mongo-express-view.vue'),
+  },
 ];
 
 const router = createRouter({

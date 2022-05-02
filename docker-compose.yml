@@ -6,19 +6,21 @@ services:
     build: ./proxy
     restart: always
     ports:
-      - "80:80"
+      - 80:80
     depends_on:
       - orchestrator
       - web-client
       - browser-worker
       - browser-workers-manager
       - arena
+      - mongo-express
     networks:
       - proxy-web-client
       - proxy-orchestrator
       - proxy-browser-workers-manager
       - proxy-arena
       - proxy-browser-worker
+      - proxy-mongo-express
 
   # Public HTTP Gateway
   orchestrator:
@@ -26,6 +28,7 @@ services:
     restart: always
     depends_on:
       - redis
+      - mongo
     networks:
       - proxy-orchestrator
       - redis
@@ -42,8 +45,6 @@ services:
   browser-workers-manager:
     build: ./browser-workers-manager
     restart: always
-    ports:
-      - "3000:3000"
     depends_on:
       - redis
     networks:
@@ -68,13 +69,16 @@ services:
       - proxy-browser-worker
   
   redis:
-    image: "redis:alpine"
+    image: redis:alpine
     networks:
       - redis
 
   mongo:
     image: mongo
     restart: always
+    networks:
+      - mongo-mongo-express
+    # TODO: Add Docker secrets
     # environment:
     #   MONGO_INITDB_ROOT_USERNAME: root
     #   MONGO_INITDB_ROOT_PASSWORD: example
@@ -82,12 +86,17 @@ services:
   mongo-express:
     image: mongo-express
     restart: always
-    ports:
-      - 8081:8081
+    depends_on:
+      - mongo
+    networks:
+      - proxy-mongo-express
+      - mongo-mongo-express
     environment:
       ME_CONFIG_MONGODB_URL: mongodb://mongo:27017/
-      # ME_CONFIG_MONGODB_ADMINUSERNAME: root
-      # ME_CONFIG_MONGODB_ADMINPASSWORD: example
+      ME_CONFIG_SITE_BASEURL: /mongo-express/
+      # TODO: Move to global config and add to Docker secrets
+      # ME_CONFIG_MONGODB_ADMINUSERNAME: admin
+      # ME_CONFIG_MONGODB_ADMINPASSWORD: S0cialD@ta111!!!
 
 networks:
   proxy-web-client: {}
@@ -96,3 +105,5 @@ networks:
   proxy-arena: {}
   proxy-browser-worker: {}
   redis: {}
+  proxy-mongo-express: {}
+  mongo-mongo-express: {}

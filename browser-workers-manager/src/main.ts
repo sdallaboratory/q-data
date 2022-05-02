@@ -34,7 +34,7 @@ io.on('connection', (socket) => {
       
       log('WebSocket', `Running browser task ${job.name}`, socket.id);
 
-      socket.emit('browser-task-run', job.asJSON());
+      socket.emit('browser-task-run', job);
 
       const timeout = setTimeout(() => {
         const message = `Browser task failed with timeout ${BROWSER_TASK_TIMEOUT_MS}ms`

@@ -71,15 +71,13 @@ nav {
 
 <script lang="ts">
 import { Options, Vue } from 'vue-class-component';
-import io from 'socket.io-client';
+import io, { Socket } from 'socket.io-client';
 import VkApi from './services/vk.service';
 import environment from './environment';
 
 @Options({})
 export default class App extends Vue {
-  private readonly socket = io({
-    path: '/browser-workers-manager/socket.io',
-  });
+  private socket?: Socket;
 
   public readonly logs: string[] = [];
 
@@ -96,16 +94,21 @@ export default class App extends Vue {
     this.user = await api.authorized;
     this.log('Пользователь', this.user.first_name, 'авторизован');
 
+    this.socket = io({
+      path: '/browser-workers-manager/socket.io',
+    });
+
     // TODO: Add typings to jobs
-    this.socket.on('browser-task-run', (job) => {
+    this.socket?.on('browser-task-run', (job) => {
       this.log('Job', job.method, 'got');
 
       // TODO: Replace with real job execution implementation
       setTimeout(async () => {
+        this.log(job);
         const { method, params } = job.data; // TODO: Add Typings
         const result = await api.call(method, params);
         this.log('Task', job.name, 'done');
-        this.socket.emit('browser-task-done', result);
+        this.socket?.emit('browser-task-done', result);
       }, environment.vkApiCallIntervalMs);
     });
 
