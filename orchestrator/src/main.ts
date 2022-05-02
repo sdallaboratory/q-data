@@ -47,7 +47,7 @@ app.post<string, unknown, unknown, Task>('/api/tasks', async (req, res) => {
     if (!task) {
         throw new Error('body must be presented');
     }
-    const name = `${task.name}-${new Date().getTime()}-${(Math.random() * 100).toFixed()}`;
+    const name = `${task.type}-${new Date().getTime()}-${(Math.random() * 100).toFixed()}`;
     await tasksQueue.add(name, task, { attempts: 3 });
     log('System', `successfully created task ${name}`);
     res.sendStatus(201);
@@ -58,7 +58,7 @@ app.post<string, unknown, unknown, Task>('/api/browser-tasks', async (req, res) 
     if (!task) {
         throw new Error('body must be presented');
     }
-    const name = `${task.name}-${new Date().getTime()}-${(Math.random() * 100).toFixed()}`;
+    const name = `${task.type}-${new Date().getTime()}-${(Math.random() * 100).toFixed()}`;
     await browserTasksQueue.add(name, task, { attempts: 5 });
     log('System', `successfully created browser task ${name}`);
     res.sendStatus(201);
