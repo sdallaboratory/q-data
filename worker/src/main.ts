@@ -5,7 +5,6 @@ import { log } from '../../shared/logger/log';
 import { container } from 'tsyringe';
 import { processorsRegistry } from './processors/registry/processors-registry';
 import { JobProcessorExecutor } from './processors/job-processor';
-import { vkCollectGroupsDefaultParams } from './processors/vk-collect-groups/vk-collect-groups-default-params';
 import "./processors/vk-collect-groups/vk-collect-groups.processor";
 
 async function runJob(job: Job) {
@@ -31,3 +30,5 @@ const worker = new Worker(environment.QUEUE_NAME_TASKS, runJob, {
         port: environment.REDIS_PORT,
     },
 });
+
+log('System', `Worker is up and listening for jobs...`);

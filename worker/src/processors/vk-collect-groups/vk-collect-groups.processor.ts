@@ -1,6 +1,6 @@
 import { Job } from "bullmq";
 import _ from "lodash";
-import { firstValueFrom, of, mergeMap, map, reduce } from "rxjs";
+import { firstValueFrom, of, mergeMap, map, reduce, tap } from "rxjs";
 import { inject } from "tsyringe";
 import { GroupsGroup } from "vk-io/lib/api/schemas/objects";
 import { log } from "../../../../shared/logger/log";
@@ -34,18 +34,18 @@ export class VkCollectGroups extends JobProcessorExecutor<VkCollectGroupsJob> {
 
     async process() {
 
-        log('System', `Collectiong groups from vk with ${this.params.queries.length} queries...`);
+        log('System', `Collecting groups from vk with ${this.params.queries.length} queries...`);
         const groups = await firstValueFrom(
             of(...this.params.queries).pipe(
                 mergeMap(query => this.vkApi.call('groups', 'search', { q: query, count: 1000 }), 10),
-                map(response => response.items),
+                map(({ response }) => response.items),
+                map((v, i) => { this.reportProgress(i + 1, this.params.queries.length); return v }),
                 reduce((acc, groups) => [...acc, ...groups], [] as GroupsGroup[]),
-                filterArray(this.satisfies),
-                map(groups => _.filter(groups, this.satisfies)),
+                filterArray(group => this.satisfies(group)),
                 map(groups => _.uniqBy(groups, group => group.id)),
             ),
         );
-        log('System', `Successfully collected groups from VK.`);
+        log('System', `Successfully collected ${groups.length} groups from VK.`);
 
         const collection = await this.mongo.getCollection(
             this.params.mongo.db,

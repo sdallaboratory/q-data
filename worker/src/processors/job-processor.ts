@@ -10,7 +10,7 @@ export abstract class JobProcessorExecutor<TJob extends Job = Job> implements Di
     }
 
     protected reportProgress(value: number, max: number, min = 0) {
-        const percent = (value - min) / max;
+        const percent = (value - min) / max * 100;
         this.job.updateProgress(percent);
     }
 

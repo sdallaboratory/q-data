@@ -25,7 +25,7 @@ export class VkApiService implements Disposable {
         const name = `${area}.${method}`;
         const job = await this.queue.queue.add(name, params, { parent, attempts: 5 });
         const response = await job.waitUntilFinished(this.queue.events);
-        return response as TResult;
+        return response as { response: TResult };
     }
 
     async dispose() {
