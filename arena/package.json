@@ -3,11 +3,11 @@
   "version": "1.0.0",
   "main": "main.ts",
   "scripts": {
-    "start": "nodemon --watch . --watch ../shared --ignore ./dist --ext json,ts,js --exec npm run serve:dev",
-    "serve:dev": "npm run build && npm run serve",
+    "start": "nodemon --watch . --watch ../shared --ignore ./dist --ext json,ts,js --exec yarn serve:dev",
+    "serve:dev": "yarn build && yarn serve",
     "serve": "node ./dist/main.js",
     "build": "tsc",
-    "build:watch": "nodemon --watch . --watch ../shared --ignore ./dist --ext json,ts,js --exec npm run build"
+    "build:watch": "nodemon --watch . --watch ../shared --ignore ./dist --ext json,ts,js --exec yarn build"
   },
   "author": "Sergei Solovev",
   "license": "ISC",
