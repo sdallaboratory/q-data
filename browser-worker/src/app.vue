@@ -100,12 +100,11 @@ export default class App extends Vue {
 
     // TODO: Add typings to jobs
     this.socket?.on('browser-task-run', (job) => {
-      this.log('Job', job.method, 'got');
+      this.log('Job', job.name, 'got. Starting Vk API request');
 
-      // TODO: Replace with real job execution implementation
       setTimeout(async () => {
-        this.log(job);
-        const { method, params } = job.data; // TODO: Add Typings
+        const method = job.name;
+        const params = job.data;
         const result = await api.call(method, params);
         this.log('Task', job.name, 'done');
         this.socket?.emit('browser-task-done', result);

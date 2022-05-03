@@ -1,7 +1,7 @@
 import express from 'express';
 import { log } from '../../shared/logger/log';
 import { Queue } from 'bullmq';
-import { Task } from '../../shared/models/task.interface';
+import { Task } from '../../shared/models/tasks/task';
 
 const PORT = 3000;
 const REDIS_HOST = 'redis';
@@ -43,24 +43,25 @@ app.get('/api/tasks', async (req, res) => {
 });
 
 app.post<string, unknown, unknown, Task>('/api/tasks', async (req, res) => {
-    const task = req.body;
+    const task = req.body as Task;
     if (!task) {
         throw new Error('body must be presented');
     }
-    const name = `${task.type}-${new Date().getTime()}-${(Math.random() * 100).toFixed()}`;
-    await tasksQueue.add(name, task, { attempts: 3 });
-    log('System', `successfully created task ${name}`);
+    await tasksQueue.add(task.name, task.params, { attempts: 3 });
+    log('System', `successfully created task ${task.name}`);
     res.sendStatus(201);
 })
 
+/**
+ * @deprecated The endpoint is added for testing purposes. Avoid using it as it can be removed at any time.
+ */
 app.post<string, unknown, unknown, Task>('/api/browser-tasks', async (req, res) => {
     const task = req.body;
     if (!task) {
         throw new Error('body must be presented');
     }
-    const name = `${task.type}-${new Date().getTime()}-${(Math.random() * 100).toFixed()}`;
-    await browserTasksQueue.add(name, task, { attempts: 5 });
-    log('System', `successfully created browser task ${name}`);
+    await browserTasksQueue.add(task.name, task, { attempts: 5 });
+    log('System', `successfully created browser task ${task.name}`);
     res.sendStatus(201);
 })
 
