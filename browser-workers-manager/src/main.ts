@@ -43,7 +43,8 @@ io.on('connection', (socket) => {
         dispose();
       }, BROWSER_TASK_TIMEOUT_MS);
 
-      const doneListener = (result: unknown) => {
+      const doneListener = async (result: unknown) => {
+        await job.updateProgress(100);
         resolve(result);
         log('WebSocket', `Successfully done task ${job.name}`, socket.id);
         dispose();

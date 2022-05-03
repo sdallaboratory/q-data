@@ -72,6 +72,7 @@ nav {
 <script lang="ts">
 import { Options, Vue } from 'vue-class-component';
 import io, { Socket } from 'socket.io-client';
+import { Job } from 'bullmq';
 import VkApi from './services/vk.service';
 import environment from './environment';
 
@@ -99,7 +100,7 @@ export default class App extends Vue {
     });
 
     // TODO: Add typings to jobs
-    this.socket?.on('browser-task-run', (job) => {
+    this.socket?.on('browser-task-run', (job: Job) => {
       this.log('Job', job.name, 'got. Starting Vk API request');
 
       setTimeout(async () => {

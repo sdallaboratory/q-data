@@ -14,13 +14,13 @@ services:
       - browser-workers-manager
       - arena
       - mongo-express
-    networks:
-      - proxy-web-client
-      - proxy-orchestrator
-      - proxy-browser-workers-manager
-      - proxy-arena
-      - proxy-browser-worker
-      - proxy-mongo-express
+    # networks:
+    #   - proxy-web-client
+    #   - proxy-orchestrator
+    #   - proxy-browser-workers-manager
+    #   - proxy-arena
+    #   - proxy-browser-worker
+    #   - proxy-mongo-express
 
   # Public HTTP Gateway
   orchestrator:
@@ -29,9 +29,9 @@ services:
     depends_on:
       - redis
       - mongo
-    networks:
-      - proxy-orchestrator
-      - redis
+    # networks:
+    #   - proxy-orchestrator
+    #   - redis
 
   # Public Web Web-client UI
   web-client:
@@ -39,53 +39,56 @@ services:
     restart: always
     depends_on:
       - orchestrator
-    networks:
-      - proxy-web-client
+    # networks:
+    #   - proxy-web-client
   
   browser-workers-manager:
     build: ./browser-workers-manager
     restart: always
     depends_on:
       - redis
-    networks:
-      - proxy-browser-workers-manager
-      - redis
+    # networks:
+    #   - proxy-browser-workers-manager
+    #   - redis
 
   worker:
     build: ./worker
     restart: always
     depends_on:
       - redis
-    networks:
-      - redis
+    # networks:
+    #   - redis
+    #   - mongo-worker
+
 
   arena:
     build: ./arena
     restart: always
     depends_on:
       - redis
-    networks:
-      - redis
-      - proxy-arena
+    # networks:
+    #   - redis
+    #   - proxy-arena
 
   browser-worker:
     build: ./browser-worker
     restart: always
     depends_on:
       - browser-workers-manager
-    networks:
-      - proxy-browser-worker
+    # networks:
+    #   - proxy-browser-worker
   
   redis:
     image: redis:alpine
-    networks:
-      - redis
+    # networks:
+    #   - redis
 
   mongo:
     image: mongo
     restart: always
-    networks:
-      - mongo-mongo-express
+    # networks:
+    #   - mongo-mongo-express
+    #   - mongo-worker
     # TODO: Add Docker secrets
     # environment:
     #   MONGO_INITDB_ROOT_USERNAME: root
@@ -96,9 +99,9 @@ services:
     restart: always
     depends_on:
       - mongo
-    networks:
-      - proxy-mongo-express
-      - mongo-mongo-express
+    # networks:
+    #   - proxy-mongo-express
+    #   - mongo-mongo-express
     environment:
       ME_CONFIG_MONGODB_URL: mongodb://mongo:27017/
       ME_CONFIG_SITE_BASEURL: /mongo-express/
@@ -106,12 +109,12 @@ services:
       # ME_CONFIG_MONGODB_ADMINUSERNAME: admin
       # ME_CONFIG_MONGODB_ADMINPASSWORD: S0cialD@ta111!!!
 
-networks:
-  proxy-web-client: {}
-  proxy-orchestrator: {}
-  proxy-browser-workers-manager: {}
-  proxy-arena: {}
-  proxy-browser-worker: {}
-  redis: {}
-  proxy-mongo-express: {}
-  mongo-mongo-express: {}
+# networks:
+#   proxy-web-client: {}
+#   proxy-orchestrator: {}
+#   proxy-browser-workers-manager: {}
+#   proxy-arena: {}
+#   proxy-browser-worker: {}
+#   redis: {}
+#   proxy-mongo-express: {}
+#   mongo-mongo-express: {}

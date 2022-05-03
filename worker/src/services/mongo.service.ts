@@ -3,6 +3,8 @@ import { injectable, scoped, Lifecycle } from 'tsyringe';
 import { environment } from '../../../shared/environment';
 import { Disposable } from '../../../shared/interfaces/disposable';
 
+const mongo = 
+
 @injectable()
 @scoped(Lifecycle.ResolutionScoped)
 export class MongoService implements Disposable {
