@@ -8,7 +8,7 @@
     <h2>{{ selectedTask.name }} (type: {{ selectedTask.type }})</h2>
     Here you can see default parameters of such kind of task. Tou can change it if necessary.
     Then press "Run task" to start execution.
-    <Vue3JsonEditor v-model="selectedTask.params" height="400px" :mode="'code'" />
+    <Vue3JsonEditor v-model="selectedTask.params" :mode="'code'" @json-change="updateParams" />
     <button @click="runTask()">Run task</button>
   </template>
 </template>
@@ -32,9 +32,17 @@ import { Task } from '../../../shared/models/tasks/task';
   },
 })
 export default class HomeView extends Vue {
+  public readonly log = console.log;
+
   public availableTasks = [] as Task[];
 
   public selectedTask: Task | false = false;
+
+  public updateParams(params: Task['params']) {
+    if (this.selectedTask) {
+      this.selectedTask.params = params;
+    }
+  }
 
   async created() {
     this.availableTasks = await fetch('/api/tasks')
