@@ -12,13 +12,13 @@ services:
       - web-client
       - browser-worker
       - browser-workers-manager
-      - arena
+      - bull-dashboard
       - mongo-express
     # networks:
     #   - proxy-web-client
     #   - proxy-orchestrator
     #   - proxy-browser-workers-manager
-    #   - proxy-arena
+    #   - proxy-bull-dashboard
     #   - proxy-browser-worker
     #   - proxy-mongo-express
 
@@ -61,14 +61,14 @@ services:
     #   - mongo-worker
 
 
-  arena:
-    build: ./arena
+  bull-dashboard:
+    build: ./bull-dashboard
     restart: always
     depends_on:
       - redis
     # networks:
     #   - redis
-    #   - proxy-arena
+    #   - proxy-bull-dashboard
 
   browser-worker:
     build: ./browser-worker
@@ -113,7 +113,7 @@ services:
 #   proxy-web-client: {}
 #   proxy-orchestrator: {}
 #   proxy-browser-workers-manager: {}
-#   proxy-arena: {}
+#   proxy-bull-dashboard: {}
 #   proxy-browser-worker: {}
 #   redis: {}
 #   proxy-mongo-express: {}

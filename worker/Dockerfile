@@ -4,7 +4,7 @@ WORKDIR /app
 
 COPY package*.json ./
 # RUN npm ci --only=production
-COPY ./node_modules ./node_modules 
+COPY ./node_modules ./node_modules
 # TODO: Dont copy dev dependencies
 
 COPY ./dist/ ./dist/

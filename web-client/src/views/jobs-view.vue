@@ -1,5 +1,5 @@
 <template>
-  <iframe src="/arena" frameborder="0" title="jobs"></iframe>
+  <iframe src="/bull-dashboard" frameborder="0" title="jobs"></iframe>
 </template>
 
 <style scoped>

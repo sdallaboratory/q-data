@@ -8,7 +8,7 @@ async function main() {
         run(command, false, './worker'),
         run(command, false, './browser-worker'),
         run(command, false, './browser-workers-manager'),
-        run(command, false, './arena'),
+        run(command, false, './bull-dashboard'),
         run(command, false, './orchestrator'),
     ])
     // await run('docker compose down --rmi local --remove-orphans');

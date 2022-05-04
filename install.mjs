@@ -8,7 +8,7 @@ async function main() {
     await run(command, true, './worker');
     await run(command, true, './browser-worker');
     await run(command, true, './browser-workers-manager');
-    await run(command, true, './arena');
+    await run(command, true, './bull-dashboard');
     await run(command, true, './orchestrator');
 }
 

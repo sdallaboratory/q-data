@@ -1,24 +1,15 @@
 <template>
-  <!-- <label for="task-name">First Name
-    <input v-model="task.type" type="text" id="task-name" placeholder="Task Name">
-  </label> -->
-  <template>
-    <div class="home">
-      <ol>
-        <li v-for="task in availableTasks" :key="task.name">{{ task }}</li>
-      </ol>
-    </div>
-  </template>
-
-  <select name="" id="">
+  <h2>Available tasks</h2>
+  <p>Select a task to run</p>
+  <select v-model="selectedTask">
     <option v-for="task in availableTasks" :key="task.name" :value="task">{{ task.name }}</option>
   </select>
   <template v-if="selectedTask">
-
-    <Vue3JsonEditor v-model="selectedTask.params" :show-btns="true" :mode="'code'" />
+    <h2>{{ selectedTask.name }} (type: {{ selectedTask.type }})</h2>
+    Here you can see default parameters of such kind of task. Tou can change it if necessary.
+    Then press "Run task" to start execution.
+    <Vue3JsonEditor v-model="selectedTask.params" height="400px" :mode="'code'" />
     <button @click="runTask()">Run task</button>
-
-    {{ selectedTask }}
   </template>
 </template>
 
@@ -43,13 +34,14 @@ import { Task } from '../../../shared/models/tasks/task';
 export default class HomeView extends Vue {
   public availableTasks = [] as Task[];
 
-  public selectedTask?: Task;
+  public selectedTask: Task | false = false;
 
-  public constructor() {
-    super();
-    fetch('/api/tasks')
-      .then((response) => response.json())
-      .then((tasks) => { this.availableTasks = tasks; });
+  async created() {
+    this.availableTasks = await fetch('/api/tasks')
+      .then((response) => response.json());
+    if (!this.selectedTask) {
+      [this.selectedTask] = this.availableTasks;
+    }
   }
 
   // TODO: Move to separate type file
