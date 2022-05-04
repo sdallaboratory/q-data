@@ -2,6 +2,7 @@ import express from 'express';
 import { log } from '../../shared/logger/log';
 import { Queue } from 'bullmq';
 import { Task } from '../../shared/models/tasks/task';
+import { vkCollectGroupsDefaultParams } from '../../shared/models/tasks/vk-collect-groups/vk-collect-groups-default-params';
 
 const PORT = 3000;
 const REDIS_HOST = 'redis';
@@ -36,21 +37,28 @@ app.use((req, res, next) => {
 // });
 
 app.get('/api/tasks', async (req, res) => {
+    // TODO: Retrieve registered works from workers via dedicated Queue
     res.send([
-        'task1',
-        'task2',
+        {
+            name: 'vk-collect-groups',
+            type: 'default',
+            params: vkCollectGroupsDefaultParams, // TODO: Remove code reference to worker repo. Move to Shared.
+        } as Task,
     ]);
 });
 
 app.post<string, unknown, unknown, Task>('/api/tasks', async (req, res) => {
-    const task = req.body as Task;
+    const task = req.body as Task | undefined;
     if (!task) {
-        throw new Error('body must be presented');
+        throw new Error('body must be presented.');
     }
-    await tasksQueue.add(task.name, task.params, { attempts: 3 });
-    log('System', `successfully created task ${task.name}`);
-    res.sendStatus(201);
-})
+    if (task.type !== 'default') {
+        throw new Error('Only default tasks can be ran via HTTP API.');
+    }
+    const job = await tasksQueue.add(task.name, task.params, { attempts: 3 });
+    log('System', `successfully created task ${task.name}.`);
+    res.status(201).send(job);
+});
 
 /**
  * @deprecated The endpoint is added for testing purposes. Avoid using it as it can be removed at any time.
@@ -63,7 +71,7 @@ app.post<string, unknown, unknown, Task>('/api/browser-tasks', async (req, res) 
     await browserTasksQueue.add(task.name, task, { attempts: 5 });
     log('System', `successfully created browser task ${task.name}`);
     res.sendStatus(201);
-})
+});
 
 // Starting server
 

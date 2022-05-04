@@ -3,8 +3,8 @@ import { Queue, Worker } from 'bullmq';
 import express from 'express';
 import http from 'http';
 import { Server } from 'socket.io';
-import { Task } from '../../shared/models/task.interface';
 import { log } from '../../shared/logger/log';
+import { Task } from '../../shared/models/tasks/task';
 
 const REDIS_HOST = 'redis';
 const REDIS_PORT = 6379;
@@ -17,7 +17,8 @@ const app = express();
 const server = http.createServer(app);
 const io = new Server(server);
 
-const queue = new Queue<Task>(QUEUE_NAME_TASKS, {
+// TODO: Add cleat typings
+const queue = new Queue<Task['params'], void, Task['name']>(QUEUE_NAME_TASKS, {
   connection: {
     host: REDIS_HOST,
     port: REDIS_PORT,

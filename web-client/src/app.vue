@@ -1,7 +1,6 @@
 <template>
   <nav>
     <router-link to="/">Список задач</router-link> |
-    <router-link to="/about">Запустить задачу</router-link> |
     <router-link to="/jobs">Администрирование задач</router-link> |
     <router-link to="/mongo-express">Администрирование данных</router-link>
   </nav>

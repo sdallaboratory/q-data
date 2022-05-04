@@ -1,16 +1,10 @@
 import { createRouter, createWebHistory, RouteRecordRaw } from 'vue-router';
-import TasksPage from '../views/tasks-view.vue';
 
 const routes: Array<RouteRecordRaw> = [
   {
     path: '/',
-    name: 'home',
-    component: TasksPage,
-  },
-  {
-    path: '/about',
-    name: 'about',
-    component: () => import(/* webpackChunkName: "about" */ '../views/run-task-view.vue'),
+    name: 'tasks',
+    component: () => import(/* webpackChunkName: "tasks" */ '../views/run-task-view.vue'),
   },
   {
     path: '/jobs',

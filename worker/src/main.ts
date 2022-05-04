@@ -31,4 +31,6 @@ const worker = new Worker(environment.QUEUE_NAME_TASKS, runJob, {
     },
 });
 
-log('System', `Worker is up and listening for jobs...`);
+worker.waitUntilReady().then(
+    () => log('System', `Worker is up and listening for jobs...`),
+);

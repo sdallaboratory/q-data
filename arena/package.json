@@ -5,7 +5,7 @@
   "scripts": {
     "start": "nodemon --watch . --watch ../shared --ignore ./dist --ext json,ts,js --exec yarn serve:dev",
     "serve:dev": "yarn build && yarn serve",
-    "serve": "node ./dist/main.js",
+    "serve": "node ./dist/src/main.js",
     "build": "tsc",
     "build:watch": "nodemon --watch . --watch ../shared --ignore ./dist --ext json,ts,js --exec yarn build"
   },

@@ -4,14 +4,15 @@ import { firstValueFrom, of, mergeMap, map, reduce, tap } from "rxjs";
 import { inject } from "tsyringe";
 import { GroupsGroup } from "vk-io/lib/api/schemas/objects";
 import { log } from "../../../../shared/logger/log";
+import { vkCollectGroupsDefaultParams } from "../../../../shared/models/tasks/vk-collect-groups/vk-collect-groups-default-params";
 import { VkCollectGroupsParams } from "../../../../shared/models/tasks/vk-collect-groups/vk-collect-groups-params";
 // import { VkCollectGroupsJob } from "../../../../shared/models/tasks/vk-collect-groups/vk-collect-groups-job";
 import { filterArray } from "../../../../shared/utils/rxjs/operators/filter-array";
+import { mapArray } from "../../../../shared/utils/rxjs/operators/map-array";
 import { MongoService } from "../../services/mongo.service";
 import { VkApiService } from "../../services/vk-api.service";
 import { JobProcessorExecutor } from "../job-processor";
 import { JobProcessor } from "../registry/job-processor.decorator";
-import { vkCollectGroupsDefaultParams } from "./vk-collect-groups-default-params";
 
 // TODO: Solve problem with this type at "../../../../shared/models/tasks/vk-collect-groups/vk-collect-groups-job"
 export type VkCollectGroupsJob = Job<VkCollectGroupsParams, void, 'default-collect-groups-from-vk'>;
@@ -33,7 +34,6 @@ export class VkCollectGroups extends JobProcessorExecutor<VkCollectGroupsJob> {
     }
 
     async process() {
-
         log('System', `Collecting groups from vk with ${this.params.queries.length} queries...`);
         const groups = await firstValueFrom(
             of(...this.params.queries).pipe(
@@ -42,6 +42,7 @@ export class VkCollectGroups extends JobProcessorExecutor<VkCollectGroupsJob> {
                 map((v, i) => { this.reportProgress(i + 1, this.params.queries.length); return v }),
                 reduce((acc, groups) => [...acc, ...groups], [] as GroupsGroup[]),
                 filterArray(group => this.satisfies(group)),
+                mapArray(group => ({ ...group, _id: group.id as any })),
                 map(groups => _.uniqBy(groups, group => group.id)),
             ),
         );
@@ -53,8 +54,12 @@ export class VkCollectGroups extends JobProcessorExecutor<VkCollectGroupsJob> {
         );
 
         log('System', `Preparing writing vk groups for writeing to database...`);
-        await collection.insertMany(groups);
-        log('System', `Successfully wrote vk groups to databse.`);
+        try {
+            await collection.insertMany(groups, { ordered: false });
+            log('System', `Successfully wrote vk groups to databse.`);
+        } catch (e) {
+            log('System', `En error occured while writing. It seems some data was already in the databse.`);
+        }
     }
 
     satisfies(group: GroupsGroup) {

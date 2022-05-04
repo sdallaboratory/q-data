@@ -1,6 +1,6 @@
 import _ from 'lodash';
-import { environment } from '../../../../shared/environment';
-import { VkCollectGroupsParams } from '../../../../shared/models/tasks/vk-collect-groups/vk-collect-groups-params';
+import { environment } from '../../../environment'
+import { VkCollectGroupsParams } from './vk-collect-groups-params'
 
 export const vkCollectGroupsDefaultParams: VkCollectGroupsParams = {
     mongo: {

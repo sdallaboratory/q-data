@@ -2,21 +2,38 @@
   <!-- <label for="task-name">First Name
     <input v-model="task.type" type="text" id="task-name" placeholder="Task Name">
   </label> -->
-  <button @click="runTask()">Run task</button>
-  <button @click="runTask('browser')">Run browser task</button>
-  <Vue3JsonEditor v-model="task" :show-btns="true" :mode="'code'" :expandedOnStart="true" />
+  <template>
+    <div class="home">
+      <ol>
+        <li v-for="task in availableTasks" :key="task.name">{{ task }}</li>
+      </ol>
+    </div>
+  </template>
+
+  <select name="" id="">
+    <option v-for="task in availableTasks" :key="task.name" :value="task">{{ task.name }}</option>
+  </select>
+  <template v-if="selectedTask">
+
+    <Vue3JsonEditor v-model="selectedTask.params" :show-btns="true" :mode="'code'" />
+    <button @click="runTask()">Run task</button>
+
+    {{ selectedTask }}
+  </template>
 </template>
 
 <style scoped lang="scss">
-  button {
-    padding: 20px;
-    margin: 10px 0;
-  }
+button {
+  padding: 20px;
+  margin: 10px 0;
+}
 </style>
 
 <script lang="ts">
 import { Options, Vue } from 'vue-class-component';
 import { Vue3JsonEditor } from 'vue3-json-editor';
+// eslint-disable-next-line import/no-relative-packages
+import { Task } from '../../../shared/models/tasks/task';
 
 @Options({
   components: {
@@ -24,17 +41,25 @@ import { Vue3JsonEditor } from 'vue3-json-editor';
   },
 })
 export default class HomeView extends Vue {
-  public task = { method: 'groups.search', params: { q: 'МГТУ' } };
+  public availableTasks = [] as Task[];
+
+  public selectedTask?: Task;
+
+  public constructor() {
+    super();
+    fetch('/api/tasks')
+      .then((response) => response.json())
+      .then((tasks) => { this.availableTasks = tasks; });
+  }
 
   // TODO: Move to separate type file
-  public async runTask(type: 'default' | 'browser' = 'default') {
-    const uri = type === 'browser' ? '/api/browser-tasks' : '/api/tasks';
-    await fetch(uri, {
+  public async runTask() {
+    await fetch('/api/tasks', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify(this.task),
+      body: JSON.stringify(this.selectedTask),
     });
   }
 }
