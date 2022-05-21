@@ -1,10 +1,10 @@
 // For format details, see https://aka.ms/devcontainer.json. For config options, see the README at:
-// https://github.com/microsoft/vscode-dev-containers/tree/v0.231.6/containers/typescript-node
+// https://github.com/microsoft/vscode-dev-containers/tree/v0.234.0/containers/typescript-node
 {
 	"name": "Node.js & TypeScript",
 	"build": {
 		"dockerfile": "Dockerfile",
-		// Update 'VARIANT' to pick a Node version: 16, 14, 12.
+		// Update 'VARIANT' to pick a Node version: 18, 16, 14.
 		// Append -bullseye or -buster to pin to an OS version.
 		// Use -bullseye variants on local on arm64/Apple Silicon.
 		"args": { 
@@ -30,8 +30,7 @@
 	// Comment out to connect as root instead. More info: https://aka.ms/vscode-remote/containers/non-root.
 	"remoteUser": "node",
 	"features": {
-		"docker-from-docker": "20.10",
-		"git": "latest",
-		"git-lfs": "latest"
+		"docker-from-docker": "latest",
+		"git": "latest"
 	}
 }

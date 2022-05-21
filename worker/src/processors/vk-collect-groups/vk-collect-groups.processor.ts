@@ -1,6 +1,7 @@
 import { Job } from "bullmq";
 import _ from "lodash";
-import { firstValueFrom, of, mergeMap, map, reduce, tap } from "rxjs";
+import { ObjectId } from "mongodb";
+import { firstValueFrom, of, mergeMap, map, reduce, tap, bufferCount } from "rxjs";
 import { inject } from "tsyringe";
 import { GroupsGroup } from "vk-io/lib/api/schemas/objects";
 import { log } from "../../../../shared/logger/log";
@@ -9,13 +10,14 @@ import { VkCollectGroupsParams } from "../../../../shared/models/tasks/vk-collec
 // import { VkCollectGroupsJob } from "../../../../shared/models/tasks/vk-collect-groups/vk-collect-groups-job";
 import { filterArray } from "../../../../shared/utils/rxjs/operators/filter-array";
 import { mapArray } from "../../../../shared/utils/rxjs/operators/map-array";
+import { zipShortest } from "../../../../shared/utils/zip";
 import { MongoService } from "../../services/mongo.service";
 import { VkApiService } from "../../services/vk-api.service";
 import { JobProcessorExecutor } from "../job-processor";
 import { JobProcessor } from "../registry/job-processor.decorator";
 
 // TODO: Solve problem with this type at "../../../../shared/models/tasks/vk-collect-groups/vk-collect-groups-job"
-export type VkCollectGroupsJob = Job<VkCollectGroupsParams, void, 'default-collect-groups-from-vk'>;
+export type VkCollectGroupsJob = Job<VkCollectGroupsParams, void, 'vk-collect-groups'>;
 
 
 @JobProcessor({
@@ -30,22 +32,35 @@ export class VkCollectGroups extends JobProcessorExecutor<VkCollectGroupsJob> {
         protected readonly mongo: MongoService,
     ) {
         super();
-        this.params
     }
 
     async process() {
         log('System', `Collecting groups from vk with ${this.params.queries.length} queries...`);
         const groups = await firstValueFrom(
             of(...this.params.queries).pipe(
-                mergeMap(query => this.vkApi.call('groups', 'search', { q: query, count: 1000 }), 10),
-                map(({ response }) => response.items),
+                bufferCount(25),
+                mergeMap(async queries => zipShortest(
+                    queries,
+                    await this.vkApi.callButch('groups', 'search', queries.map(q => ({ q, count: 1000 })))
+                ), 10),
+                mergeMap(pairs => of(...pairs)),
+                map(([query, response]) => response.items.map(i => ({ ...i, query })))
+            ).pipe(
                 map((v, i) => { this.reportProgress(i + 1, this.params.queries.length); return v }),
-                reduce((acc, groups) => [...acc, ...groups], [] as GroupsGroup[]),
-                filterArray(group => this.satisfies(group)),
-                mapArray(group => ({ ...group, _id: group.id as any })),
-                map(groups => _.uniqBy(groups, group => group.id)),
+            ).pipe(
+                reduce((acc, groups) => [...acc, ...groups]),
+                map(groups => _(groups)
+                    .groupBy(group => group.id)
+                    .toPairs()
+                    .map(([id, groups]) => ({ ...groups[0], query: groups.map(({ query }) => query) }))
+                    .value()
+                ),
+                mapArray(group => ({ ...group, valid: this.satisfies(group) })),
+                mapArray(group => ({ ...group, _id: new ObjectId(group.id) })),
+                mapArray(group => this.stampMeta(group)),
             ),
         );
+
         log('System', `Successfully collected ${groups.length} groups from VK.`);
 
         const collection = await this.mongo.getCollection(

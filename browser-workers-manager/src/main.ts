@@ -15,7 +15,9 @@ const PORT = 3000;
 
 const app = express();
 const server = http.createServer(app);
-const io = new Server(server);
+const io = new Server(server, {
+  maxHttpBufferSize: 1e8, // 100mb
+});
 
 // TODO: Add cleat typings
 const queue = new Queue<Task['params'], void, Task['name']>(QUEUE_NAME_TASKS, {
@@ -30,6 +32,7 @@ io.on('connection', (socket) => {
   log('WebSocket', 'Starting listening to browser tasks queue...', socket.id);
   
   // TODO: Maybe move to child process
+  // TODO: Add Job typings
   const worker = new Worker(QUEUE_NAME_TASKS_BROWSER, job => {
     return new Promise((resolve, reject) => {
       

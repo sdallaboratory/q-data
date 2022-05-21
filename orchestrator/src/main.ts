@@ -3,6 +3,7 @@ import { log } from '../../shared/logger/log';
 import { Queue } from 'bullmq';
 import { Task } from '../../shared/models/tasks/task';
 import { vkCollectGroupsDefaultParams } from '../../shared/models/tasks/vk-collect-groups/vk-collect-groups-default-params';
+import { vkCollectGroupsMembersDefaultParams } from '../../shared/models/tasks/vk-collect-groups-members/vk-collect-groups-members-default-params';
 
 const PORT = 3000;
 const REDIS_HOST = 'redis';
@@ -43,6 +44,11 @@ app.get('/api/tasks', async (req, res) => {
             name: 'vk-collect-groups',
             type: 'default',
             params: vkCollectGroupsDefaultParams, // TODO: Remove code reference to worker repo. Move to Shared.
+        } as Task,
+        {
+            name: 'vk-collect-groups-members',
+            type: 'default',
+            params: vkCollectGroupsMembersDefaultParams, // TODO: Remove code reference to worker repo. Move to Shared.
         } as Task,
     ]);
 });

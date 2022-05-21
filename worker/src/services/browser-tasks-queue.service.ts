@@ -12,6 +12,7 @@ export class BrowserTasksQueueService implements Disposable {
         port: environment.REDIS_PORT,
     };
 
+    // TODO: Add typings to Queue
     public queue = new Queue(environment.QUEUE_NAME_TASKS_BROWSER, {
         connection: this.connection,
     });

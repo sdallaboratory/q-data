@@ -112,11 +112,9 @@ export default class App extends Vue {
       }, environment.vkApiCallIntervalMs);
     });
 
-    if (this.socket.connected) {
-      this.log('Connected to browser-tasks-manager. Listening for tasks...');
-    } else {
-      this.log('Error while connecting to browser-tasks-manager. Trying to reconect...');
-    }
+    this.socket.on('connect', () => this.log('Connected to browser-tasks-manager. Listening for tasks...'));
+    this.socket.on('connect_error', () => this.log('Error while connecting to browser-tasks-manager. Trying to reconect...'));
+    this.socket.on('disconnect', () => this.log('Unexpectdly disconnected from server. Trying to reconect...'));
   }
 }
 

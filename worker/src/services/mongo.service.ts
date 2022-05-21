@@ -20,9 +20,9 @@ export class MongoService implements Disposable {
         const client = await this.client;
         return client.db(db);
     }
-    public async getCollection(db: string, collection: string) {
+    public async getCollection<TDocument>(db: string, collection: string) {
         const client = await this.client;
-        return client.db(db).collection(collection);
+        return client.db(db).collection<TDocument>(collection);
     }
 
     async dispose() {

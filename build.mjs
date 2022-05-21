@@ -11,10 +11,6 @@ async function main() {
         run(command, false, './bull-dashboard'),
         run(command, false, './orchestrator'),
     ])
-    // await run('docker compose down --rmi local --remove-orphans');
-    // await run('docker system prune -f');
-    // await run('docker compose build --no-cache');
-    // await run('docker compose up');
 }
 
 main();
