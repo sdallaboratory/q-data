@@ -53,6 +53,14 @@ io.on('connection', (socket) => {
         log('WebSocket', `Successfully done task ${job.name}`, socket.id);
         dispose();
       };
+
+      // TODO: Add global type for VK errors
+      const errorListener = async (error: {error: {error_msg: string, error_code: number}}) => {
+        const {error_code, error_msg } = error.error;
+        reject(error);
+        log('WebSocket', `Task ${job.name} failed. Error: ${error_code} (${error_msg})`, socket.id);
+        dispose();
+      };
       
       const disconnectListener =  async () => {
         const message = `Browser task failed due to browser-worker disconnection`;
@@ -64,11 +72,13 @@ io.on('connection', (socket) => {
       
       function dispose() {
         socket.off('browser-task-done', doneListener);
+        socket.off('browser-task-error', errorListener);
         socket.off('disconnect', disconnectListener);
         clearTimeout(timeout);
       }
       
       socket.on('browser-task-done', doneListener);
+      socket.on('browser-task-error', errorListener);
       socket.on('disconnect', disconnectListener);
     })
   }, {

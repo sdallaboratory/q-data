@@ -79,7 +79,7 @@ export class VkApiService implements Disposable {
             ? UResult[]
             : never;
         const code = `return [
-            ${params.map(p => `API.${area}.${method}(${JSON.stringify(p)})`).join(', ')}
+            ${params.map(p => `API.${area}.${method}(${JSON.stringify(p)})`).join(',\n')}
         ];`;
         return await this.execute<TResult>(code);
     }

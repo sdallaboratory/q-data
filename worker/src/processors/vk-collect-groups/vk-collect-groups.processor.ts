@@ -35,7 +35,7 @@ export class VkCollectGroups extends JobProcessorExecutor<VkCollectGroupsJob> {
     }
 
     async process() {
-        log('System', `Collecting groups from vk with ${this.params.queries.length} queries...`);
+        log('System', `Collecting groups from vk with ${this.params.queries.length} queries...`, this.job.id);
         const groups = await firstValueFrom(
             of(...this.params.queries).pipe(
                 bufferCount(25),
@@ -52,28 +52,30 @@ export class VkCollectGroups extends JobProcessorExecutor<VkCollectGroupsJob> {
                 map(groups => _(groups)
                     .groupBy(group => group.id)
                     .toPairs()
-                    .map(([id, groups]) => ({ ...groups[0], query: groups.map(({ query }) => query) }))
+                    .map(([id, groupCopies]) => ({ ...groupCopies[0], query: groupCopies.map(({ query }) => query) }))
                     .value()
                 ),
                 mapArray(group => ({ ...group, valid: this.satisfies(group) })),
-                mapArray(group => ({ ...group, _id: new ObjectId(group.id) })),
+                mapArray(group => this.stampId(group)),
                 mapArray(group => this.stampMeta(group)),
             ),
         );
 
-        log('System', `Successfully collected ${groups.length} groups from VK.`);
+        log('System', `Successfully collected ${groups.length} groups from VK.`, this.job.id);
 
         const collection = await this.mongo.getCollection(
             this.params.mongo.db,
             this.params.mongo.collection
         );
 
-        log('System', `Preparing writing vk groups for writeing to database...`);
+        log('System', `Preparing writing vk groups for writeing to database...`, this.job.id);
         try {
             await collection.insertMany(groups, { ordered: false });
-            log('System', `Successfully wrote vk groups to databse.`);
+            log('System', `Successfully wrote vk groups to databse.`, this.job.id);
         } catch (e) {
-            log('System', `En error occured while writing. It seems some data was already in the databse.`);
+            const message = `An error occured while writing. It seems some data was already in the databse.`;
+            log('System', message, this.job.id);
+            throw new Error(message);
         }
     }
 

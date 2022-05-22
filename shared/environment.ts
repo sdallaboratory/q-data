@@ -1,3 +1,5 @@
+import _ from "lodash";
+
 export const environment = {
     PORT: 3000,
     MONGO_DB: 'q-data',
@@ -7,4 +9,5 @@ export const environment = {
     QUEUE_NAME_TASKS: 'Tasks',
     QUEUE_NAME_TASKS_BROWSER: 'BrowserTasks',
     JOB_ATTEMPTS: 5,
+    COMPOSE_RUN_ID: _.random(0, 1000000),
 } as const;

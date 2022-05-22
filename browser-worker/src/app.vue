@@ -106,9 +106,16 @@ export default class App extends Vue {
       setTimeout(async () => {
         const method = job.name;
         const params = job.data;
-        const result = await api.call(method, params);
-        this.log('Task', job.name, 'done');
-        this.socket?.emit('browser-task-done', result);
+        // TODO: Add more strict typings
+        const result = await api.call(method, params) as { response: any } | { error: any };
+        if ('error' in result) {
+          this.log('Task', job.name, 'finished with error', result.error.error_msg);
+          // TODO: Move events name to shared
+          this.socket?.emit('browser-task-error', result);
+        } else {
+          this.log('Task', job.name, 'done');
+          this.socket?.emit('browser-task-done', result);
+        }
       }, environment.vkApiCallIntervalMs);
     });
 
