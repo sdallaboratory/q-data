@@ -1,5 +1,6 @@
+import { Job } from 'bullmq';
 import { MongoClient } from 'mongodb';
-import { injectable, scoped, Lifecycle } from 'tsyringe';
+import { injectable, scoped, Lifecycle, inject } from 'tsyringe';
 import { environment } from '../../../shared/environment';
 import { Disposable } from '../../../shared/interfaces/disposable';
 
@@ -7,8 +8,12 @@ import { Disposable } from '../../../shared/interfaces/disposable';
 @scoped(Lifecycle.ResolutionScoped)
 export class MongoService implements Disposable {
 
+    constructor(
+        @inject(Job) protected readonly job: Job,
+    ) {}
+
     public readonly client = new MongoClient(
-        environment.MONGO_CONNECTION_STRING
+        environment.MONGO_CONNECTION_STRING // TODO: Check if job.data.mongo.connection exists
     ).connect();
 
     public async getClient() {

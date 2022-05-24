@@ -90,6 +90,8 @@ services:
     #   - mongo-mongo-express
     #   - mongo-worker
     # TODO: Add Docker secrets
+    volumes:
+    - /d/BMSTU/DIPLOMA/data:/data/db
     # environment:
     #   MONGO_INITDB_ROOT_USERNAME: root
     #   MONGO_INITDB_ROOT_PASSWORD: example

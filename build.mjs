@@ -1,4 +1,4 @@
-import {run} from './build/run.mjs'
+import { run } from './build/run.mjs'
 
 async function main() {
     const exe = /^win/.test(process.platform) ? 'yarn.cmd' : 'yarn';

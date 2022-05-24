@@ -1,28 +1,27 @@
 import { Job } from "bullmq";
 import _ from "lodash";
-import { firstValueFrom, of, mergeMap, map, bufferCount, mergeWith, filter, tap } from "rxjs";
+import { firstValueFrom, of, mergeMap, map, bufferCount, mergeWith, filter, tap, reduce, bufferTime } from "rxjs";
 import { inject } from "tsyringe";
 import { GroupsGroup, UsersFields, UsersUserFull1 } from "vk-io/lib/api/schemas/objects";
 import { GroupsGetMembersFieldsResponse, GroupsGetMembersResponse } from "vk-io/lib/api/schemas/responses";
-import { log } from "../../../../shared/logger/log";
 import { VkCollectGroupsMembersParams } from "../../../../shared/models/tasks/vk-collect-groups-members/vk-collect-groups-members-params";
 import { vkCollectGroupsDefaultParams } from "../../../../shared/models/tasks/vk-collect-groups/vk-collect-groups-default-params";
+import { flatten } from "../../../../shared/utils/rxjs/operators/flatten";
 import { mapArray } from "../../../../shared/utils/rxjs/operators/map-array";
-import { zipShortest } from "../../../../shared/utils/zip";
+import { zipShortest } from "../../../../shared/utils/zip-shortest";
 import { MongoService } from "../../services/mongo.service";
 import { VkApiService } from "../../services/vk-api.service";
-import { JobProcessorExecutor } from "../job-processor";
+import { JobDbProcessorExecutor } from "../job-db-processor";
 import { JobProcessor } from "../registry/job-processor.decorator";
 
 // TODO: Solve problem with this type at "../../../../shared/models/tasks/vk-collect-groups/vk-collect-groups-job"
 export type VkCollectGroupsMembersJob = Job<VkCollectGroupsMembersParams, void, 'vk-collect-groups-members'>;
 
-
 @JobProcessor({
     taskName: 'vk-collect-groups-members',
     defaultParams: vkCollectGroupsDefaultParams,
 })
-export class VkCollectGroups extends JobProcessorExecutor<VkCollectGroupsMembersJob> {
+export class VkCollectGroups extends JobDbProcessorExecutor<VkCollectGroupsMembersJob> {
 
     private readonly fields = [
         'education',
@@ -40,55 +39,79 @@ export class VkCollectGroups extends JobProcessorExecutor<VkCollectGroupsMembers
         protected readonly vkApi: VkApiService,
         protected readonly mongo: MongoService,
     ) {
-        super();
+        super(job, mongo);
     }
 
-    // private async save<T extends object>(docs: T[]) {
-    //     const cacheCollection = await this.mongo.getCollection(this.params.mongo.db, this.params.mongo.membersCacheCollection);
-    //     const membersCollection = await this.mongo.getCollection(this.params.mongo.db, this.params.mongo.membersCollection);
-    //     const cache = await membersCollection.find().toArray();
-    //     await cacheCollection.drop()
-    //     await cacheCollection.insertMany(cache);
-    //     await membersCollection.drop();
-    //     await membersCollection.insertMany(docs);
-    // }
+    anonimizeUsers(user: any) {
+        return _.omit(user, ['last_name', 'first_name', 'can_access_closed'])
+    };
+
+    parseDate<T extends { bdate?: string }>(user: T) {
+        if (!user.bdate) {
+            return user;
+        }
+        const regex = /^(?<day>[0-3]?\d?).(?<month>[01]?\d?)(?<year>.?([12]\d\d\d))?$/;
+        const groups = regex.exec(user.bdate)?.groups;
+        if (!groups) {
+            return user;
+        }
+        return {
+            ...user,
+            bdate: {
+                ..._.mapValues(groups, Number),
+            }
+        }
+    };
 
     async process() {
         this.log(`Collecting groups members from vk...`);
-        type Document = GroupsGroup & { id: number; valid: boolean }; // TODO: Move it to separate files
+        type Document = GroupsGroup & { id: number; stopWords?: string[] }; // TODO: Move it to separate files
+
         const groupsCollection = await this.mongo.getCollection<Document>(this.params.mongo.db, this.params.mongo.groupsCollection);
         const cacheCollection = await this.mongo.getCollection(this.params.mongo.db, this.params.mongo.membersCacheCollection);
+        const membersCollection = await this.mongo.getCollection(this.params.mongo.db, this.params.mongo.membersCollection);
 
-        const groupsIds = await groupsCollection.find({ valid: true }).map(doc => doc.id).toArray();
+        const groups = await groupsCollection.find({
+            stopWords: null,
+            is_closed: 0
+        }).map(({ id, name }) => ({ id, name })).toArray();
 
-        this.log(`There is ${groupsIds.length} groups in database vk...`);
+        this.log(`There is ${groups.length} vk groups in database...`);
         await this.reportProgress(10);
 
-        const groupsCounts = await firstValueFrom(
-            of(...groupsIds).pipe(
+        const groupsMembersCounts = await firstValueFrom(
+            of(...groups).pipe(
                 bufferCount(25),
-                mergeMap(async ids => zipShortest(
-                    ids,
+                mergeMap(async groups => zipShortest(
+                    groups,
                     await this.vkApi.callButch('groups', 'getMembers',
-                        ids.map(id => ({ group_id: String(id), count: 1000, fields: this.fields }))) as Array<GroupsGetMembersFieldsResponse | boolean>
-                ), 10),
-                mergeMap(pairs => of(...pairs)),
-                filter(([id, response]) => Boolean(response)), // Because of "Access denied: group hide members" error,
-                map(([id, response]) => ({ ...response as GroupsGetMembersFieldsResponse, id })),
+                        groups.map(({ id }) => ({
+                            group_id: String(id),
+                            count: 1000,
+                            fields: this.fields,
+                            offset: 0
+                        }))) as Array<GroupsGetMembersFieldsResponse | boolean>
+                ), 5),
+                tap(responses => this.log('Collected data for groups: ', responses.map(([group]) => group.name).join(', '))),
+                flatten(),
+                filter(([group, response]) => Boolean(response)), // Because of "Access denied: group hide members" error,
+                map(([group, response]) => ({ ...response as GroupsGetMembersFieldsResponse, group })),
                 bufferCount(Infinity),
             ),
         );
 
-        
+
         await this.reportProgress(20);
-        
-        const params = _(groupsCounts)
-        .flatMap((group) => _.range(1, Math.ceil(group.count / 1000)).map(o => o * 1000).map(offset => ({ ...group, count: 1000, offset, })))
-        .value();
-        
-        // await cacheCollection.drop();
-        // await cacheCollection.insertMany(groupsCounts); // TODO: Set up using cache collections
-        
+        // const col = await this.save(groupsCounts);
+        // this.log(col);
+
+        const params = _.flatMap(groupsMembersCounts, group => _.range(1, Math.ceil(group.count / 1000))
+            .map(offset => offset * 1000)
+            .map(offset => ({ ...group, count: 1000, offset, }))
+        );
+
+        // await this.save(params);
+
         this.log(`${params.length} requests to vk API are left to collect all members...`);
         await this.reportProgress(25);
 
@@ -100,18 +123,28 @@ export class VkCollectGroups extends JobProcessorExecutor<VkCollectGroupsMembers
                 mergeMap(async params => zipShortest(
                     params,
                     await this.vkApi.callButch('groups', 'getMembers', params.map(
-                        ({ count, offset, id }) => ({ count, offset, group_id: String(id), fields: this.fields }),
+                        ({ count, offset, group }) => ({
+                            count,
+                            offset,
+                            group_id: String(group.id),
+                            fields: this.fields
+                        }),
                     )) as Array<GroupsGetMembersFieldsResponse | boolean>,
                 ), 10),
-                tap(responses => writes.push(cacheCollection.insertMany(
-                    responses.map(([params, response]) => ({ params, response })
-                )).then(r => this.log(r.insertedCount, 'items was saved to cache collection in a database')))),
-                mergeMap(pairs => of(...pairs)),
-                filter(([{ id }, response]) => Boolean(response)), // Because of "Access denied: group hide members" error,
-                map(([{ id }, s]) => ({ ...s as GroupsGetMembersFieldsResponse, id })),
-                mergeWith(of(...groupsCounts)),
-                mergeMap(group => group.items.map(user => ({ ...user as Partial<UsersUserFull1 & { id: number }>, group: group.id }))),
-                bufferCount(Infinity),
+                flatten(),
+                filter(([params, response]) => Boolean(response)), // Because of "Access denied: group hide members" error,
+                map(([{ group }, s]) => ({ ...s as GroupsGetMembersFieldsResponse, group })),
+            ).pipe(
+                mergeWith(of(...groupsMembersCounts)), // Add results of earlier requests
+                mergeMap(({ items, group }) => items.map(user => ({ ...user as Partial<UsersUserFull1 & { id: number }>, group }))),
+                map(user => this.anonimizeUsers(user)),
+                map(user => this.parseDate(user)),
+                map(user => this.stampId(user)),
+                map(user => this.stampMeta(user)),
+                bufferCount(1000),
+                tap(users => writes.push(cacheCollection.insertMany(users, { ordered: false })
+                    .then(() => this.log('New portion of', users.length, 'user was succesfully saved')))),
+                reduce((acc, users) => [...acc, ...users]),
             )
         );
 
@@ -119,33 +152,35 @@ export class VkCollectGroups extends JobProcessorExecutor<VkCollectGroupsMembers
         // TODO: Split processor into several little jobs (or at least preserve results in DB)
 
         await this.reportProgress(90);
-        this.log(`Totally collected ${users.length} users. Preparing users to write into a database...`);
+        this.log(`Totally collected ${users.length} users. Merging duplicated users...`);
 
         const uniqUsers = await firstValueFrom(
-            of(users).pipe(
+            of(
+                ...await membersCollection.find().toArray() as typeof users,
+            ).pipe(
                 map(users => _(users)
-                    .groupBy(user => user.id)
+                    .groupBy((user: typeof users) => user.id)
                     .toPairs()
-                    .map(([id, userCopies]) => ({ id: userCopies[0].id, groups: userCopies.map(({ group }) => group) }))
+                    .map(([id, [user, ...copies]]) => ({
+                        ...user,
+                        groups: [user, ...copies].map(({ group }) => group),
+                    }))
                     .value()
                 ),
                 mapArray(group => this.stampId(group)),
                 mapArray(group => this.stampMeta(group)),
-            ));
+            )
+        );
 
         await this.reportProgress(95);
 
 
-        this.log(`Successfully collected ${uniqUsers.length} groups from VK.`);
+        this.log(`Successfully collected ${uniqUsers.length} users from VK.`);
 
-        const collection = await this.mongo.getCollection(
-            this.params.mongo.db,
-            this.params.mongo.membersCollection,
-        );
 
         this.log(`Writing groups members to database...`);
         try {
-            await collection.insertMany(uniqUsers, { ordered: false });
+            await membersCollection.insertMany(uniqUsers, { ordered: false });
             this.log(`Successfully wrote vk groups members to databse.`);
             await this.reportProgress(100);
         } catch (e) {
@@ -156,6 +191,9 @@ export class VkCollectGroups extends JobProcessorExecutor<VkCollectGroupsMembers
     }
 
     async dispose() {
-        this.vkApi.dispose();
+        await Promise.all([
+            this.vkApi.dispose(),
+            this.mongo.dispose(),
+        ]);
     }
 }

@@ -25,6 +25,7 @@ export const vkCollectGroupsDefaultParams: VkCollectGroupsParams = {
         ...[
             'лицей', 'школа', 'вуз', 'университет', 'вариант', 'помощь', 'ДЗ', 'Реферат',
             'Диплом', 'факультет', 'профсоюз', 'студсовет', 'кафедра', 'курс', 'выпуск',
+            'спорт', 'клуб', 'лагерь', 'выезд', 'встреча', 'общежитие', 'общага',
         ].map(query => `${query} МГТУ Баумана`),
 
         'абитуриенты МГТУ',
@@ -39,12 +40,13 @@ export const vkCollectGroupsDefaultParams: VkCollectGroupsParams = {
         ..._.range(2010, 2030).map(year => `МГТУ ${year}`),
     ],
     stopWords: {
-        caseSensitive: [
-            'Майкоп', 'Мурманск', 'Калуга', 'Калужский', 'Магнитогорск', 'Носов',
-            'Косыгин', 'МИРЭА', 'СТАНКИН', 'МГТУ ГА', 'МАИ', 'МАМИ', 'МГУДТ', 'Яблонов',
-            'Туркменлер', 'АРиЖ', 'mstu', 'mkgtu', 'magtu', 'kosygin',
-            'rgu', 'rgu', 'Alex', 'Elise', 'Apple', 'ФЗСЭО ',
+        caseInsensitive: [
+            'Майкоп', 'Мурманск', 'Магнитогорск',
+            'Косыгин', 'МИРЭА', 'СТАНКИН', 'МГТУ ГА', 'МГУДТ',
+            'Туркменлер', 'АРиЖ', 'mkgtu', 'magtu', 'kosygin',
+            'rgu', 'rgu', 'Alex', 'Elise', 'Apple', 'ФЗСЭО ', 
+            ' mstu', // Space is important
         ],
-        caseInsensitive: ['ГА', 'ЖК'],
+        caseSensitive: ['ГА', 'ЖК', 'Носов', 'Яблонов', 'МАИ', 'МАМИ'],
     },
 };

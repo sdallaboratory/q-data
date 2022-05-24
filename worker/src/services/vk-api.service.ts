@@ -1,5 +1,4 @@
 import { injectable, scoped, Lifecycle } from "tsyringe";
-import { API } from "vk-io";
 import { APIMethods } from "vk-io/lib/api/schemas/methods";
 import { environment } from "../../../shared/environment";
 import { Disposable } from '../../../shared/interfaces/disposable';

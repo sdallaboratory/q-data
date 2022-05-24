@@ -100,23 +100,22 @@ export default class App extends Vue {
     });
 
     // TODO: Add typings to jobs
-    this.socket?.on('browser-task-run', (job: Job) => {
+    this.socket?.on('browser-task-run', async (job: Job) => {
       this.log('Job', job.name, 'got. Starting Vk API request');
 
-      setTimeout(async () => {
-        const method = job.name;
-        const params = job.data;
-        // TODO: Add more strict typings
-        const result = await api.call(method, params) as { response: any } | { error: any };
-        if ('error' in result) {
-          this.log('Task', job.name, 'finished with error', result.error.error_msg);
-          // TODO: Move events name to shared
-          this.socket?.emit('browser-task-error', result);
-        } else {
-          this.log('Task', job.name, 'done');
-          this.socket?.emit('browser-task-done', result);
-        }
-      }, environment.vkApiCallIntervalMs);
+      const method = job.name;
+      const params = job.data;
+
+      // TODO: Add more strict typings
+      const result = await api.call(method, params) as { response: any } | { error: any };
+      if ('error' in result) {
+        this.log('Task', job.name, 'finished with error', result.error.error_msg);
+        // TODO: Move events name to shared
+        this.socket?.emit('browser-task-error', result);
+      } else {
+        this.log('Task', job.name, 'done');
+        this.socket?.emit('browser-task-done', result);
+      }
     });
 
     this.socket.on('connect', () => this.log('Connected to browser-tasks-manager. Listening for tasks...'));
