@@ -3,11 +3,11 @@ import _ from "lodash";
 import { firstValueFrom, of, mergeMap, map, reduce, bufferCount, mergeAll } from "rxjs";
 import { inject } from "tsyringe";
 import { GroupsFields, GroupsGroup } from "vk-io/lib/api/schemas/objects";
+import { environment } from "../../../../shared/environment";
 import { log } from "../../../../shared/logger/log";
 import { vkCollectGroupsDefaultParams } from "../../../../shared/models/tasks/vk-collect-groups/vk-collect-groups-default-params";
 import { VkCollectGroupsParams } from "../../../../shared/models/tasks/vk-collect-groups/vk-collect-groups-params";
 import { isNotNill } from "../../../../shared/utils/is-not-nill";
-import { flatten } from "../../../../shared/utils/rxjs/operators/flatten";
 import { mapArray } from "../../../../shared/utils/rxjs/operators/map-array";
 import { zipShortest } from "../../../../shared/utils/zip-shortest";
 import { MongoService } from "../../services/mongo.service";
@@ -52,19 +52,20 @@ export class VkCollectGroups extends JobProcessorExecutor<VkCollectGroupsJob> {
                 mergeMap(async queries => zipShortest(
                     queries,
                     await this.vkApi.callButch('groups', 'search', queries.map(q => ({ q, count: 1000 })))
-                ), 10),
-                flatten(),
+                ), environment.CONCURRENCY_FACTOR),
+                mergeAll(),
                 map(([query, response]) => response.items.map(i => ({ ...i, query }))),
                 map((v, i) => { this.reportProgress(i + 1, this.params.queries.length); return v }),
                 reduce((acc, groups) => [...acc, ...groups]),
             ).pipe(
                 map(groups => _(groups)
+                    .map(group => _.omit(group, 'photo_50', 'photo_200'))
                     .groupBy(group => group.id)
                     .toPairs()
                     .map(([id, groupCopies]) => ({ ...groupCopies[0], query: groupCopies.map(({ query }) => query) }))
                     .value()
                 ),
-                flatten(),
+                mergeAll(),
                 bufferCount(500),
                 bufferCount(5),
                 mergeMap(async chunk => zipShortest(
@@ -73,9 +74,9 @@ export class VkCollectGroups extends JobProcessorExecutor<VkCollectGroupsJob> {
                         group_ids: groups.map(g => g.id).filter(isNotNill),
                         fields: this.fields,
                     }))))
-                )),
+                ), environment.CONCURRENCY_FACTOR),
                 mapArray(([partial, full]) => ({ ...partial, ...full })),
-                flatten(),
+                mergeAll(),
             ).pipe(
                 map(group => this.stampStopWords(group)),
                 map(group => this.stampId(group)),
@@ -120,7 +121,7 @@ export class VkCollectGroups extends JobProcessorExecutor<VkCollectGroupsJob> {
             ...caseInsensitive.filter(w => new RegExp(w, 'i').test(groupString)),
         ];
 
-        return stopWords.length ? { ...group, stopWords } : group;
+        return stopWords.length ? { stopWords, ...group, } : group;
     }
 
     async dispose() {

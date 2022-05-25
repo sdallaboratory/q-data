@@ -4,6 +4,8 @@ import { Queue } from 'bullmq';
 import { Task } from '../../shared/models/tasks/task';
 import { vkCollectGroupsDefaultParams } from '../../shared/models/tasks/vk-collect-groups/vk-collect-groups-default-params';
 import { vkCollectGroupsMembersDefaultParams } from '../../shared/models/tasks/vk-collect-groups-members/vk-collect-groups-members-default-params';
+import { environment } from '../../shared/environment';
+import { vkCollectFriendsDefaultParams } from '../../shared/models/tasks/vk-collect-friends/vk-collect-friends-default-params';
 
 const PORT = 3000;
 const REDIS_HOST = 'redis';
@@ -50,6 +52,11 @@ app.get('/api/tasks', async (req, res) => {
             type: 'default',
             params: vkCollectGroupsMembersDefaultParams, // TODO: Remove code reference to worker repo. Move to Shared.
         } as Task,
+        {
+            name: 'vk-collect-friends',
+            type: 'default',
+            params: vkCollectFriendsDefaultParams, // TODO: Remove code reference to worker repo. Move to Shared.
+        } as Task,
     ]);
 });
 
@@ -61,7 +68,8 @@ app.post<string, unknown, unknown, Task>('/api/tasks', async (req, res) => {
     if (task.type !== 'default') {
         throw new Error('Only default tasks can be ran via HTTP API.');
     }
-    const job = await tasksQueue.add(task.name, task.params, { attempts: 3 });
+    const options = task.options || {};
+    const job = await tasksQueue.add(task.name, task.params, { attempts: environment.JOB_ATTEMPTS, ...options });
     log('System', `successfully created task ${task.name}.`);
     res.status(201).send(job);
 });

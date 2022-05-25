@@ -7,6 +7,7 @@ import { processorsRegistry } from './processors/registry/processors-registry';
 import { JobProcessorExecutor } from './processors/job-processor';
 import "./processors/vk-collect-groups/vk-collect-groups.processor";
 import "./processors/vk-collect-groups/vk-collect-groups-members.processor";
+import "./processors/vk-collect-groups/vk-collect-friends.processor";
 
 async function runJob(job: Job) {
     const Processor = processorsRegistry.get(job.name);

@@ -1,12 +1,16 @@
 import { Job } from "bullmq";
 import _ from "lodash";
-import { firstValueFrom, of, mergeMap, map, bufferCount, mergeWith, filter, tap, reduce, bufferTime } from "rxjs";
+import moment from "moment";
+import { firstValueFrom, of, mergeMap, map, bufferCount, mergeWith, filter, tap, reduce, bufferTime, mergeAll, from } from "rxjs";
 import { inject } from "tsyringe";
 import { GroupsGroup, UsersFields, UsersUserFull1 } from "vk-io/lib/api/schemas/objects";
-import { GroupsGetMembersFieldsResponse, GroupsGetMembersResponse } from "vk-io/lib/api/schemas/responses";
+import { GroupsGetMembersFieldsResponse } from "vk-io/lib/api/schemas/responses";
+import { environment } from "../../../../shared/environment";
+import { User } from "../../../../shared/models/entities/user";
+import { Group } from "../../../../shared/models/entities/group";
 import { VkCollectGroupsMembersParams } from "../../../../shared/models/tasks/vk-collect-groups-members/vk-collect-groups-members-params";
 import { vkCollectGroupsDefaultParams } from "../../../../shared/models/tasks/vk-collect-groups/vk-collect-groups-default-params";
-import { flatten } from "../../../../shared/utils/rxjs/operators/flatten";
+import { isNotNill } from "../../../../shared/utils/is-not-nill";
 import { mapArray } from "../../../../shared/utils/rxjs/operators/map-array";
 import { zipShortest } from "../../../../shared/utils/zip-shortest";
 import { MongoService } from "../../services/mongo.service";
@@ -21,7 +25,9 @@ export type VkCollectGroupsMembersJob = Job<VkCollectGroupsMembersParams, void, 
     taskName: 'vk-collect-groups-members',
     defaultParams: vkCollectGroupsDefaultParams,
 })
-export class VkCollectGroups extends JobDbProcessorExecutor<VkCollectGroupsMembersJob> {
+export class VkCollectGroupsMembers extends JobDbProcessorExecutor<VkCollectGroupsMembersJob> {
+
+    private readonly BMSTU_ID = 250;
 
     private readonly fields = [
         'education',
@@ -42,141 +48,144 @@ export class VkCollectGroups extends JobDbProcessorExecutor<VkCollectGroupsMembe
         super(job, mongo);
     }
 
-    anonimizeUsers(user: any) {
+    anonimizeUsers<T extends object>(user: T) {
         return _.omit(user, ['last_name', 'first_name', 'can_access_closed'])
     };
 
-    parseDate<T extends { bdate?: string }>(user: T) {
+    stampAge<T extends { bdate?: string }>(user: T) {
         if (!user.bdate) {
             return user;
         }
         const regex = /^(?<day>[0-3]?\d?).(?<month>[01]?\d?)(?<year>.?([12]\d\d\d))?$/;
-        const groups = regex.exec(user.bdate)?.groups;
-        if (!groups) {
+        const groups = regex.exec(user.bdate)?.groups || {};
+        const { year, month, day } = groups;
+        if (!year || !month || !day) {
             return user;
         }
         return {
             ...user,
             bdate: {
-                ..._.mapValues(groups, Number),
+                year: Number(year),
+                age: moment().diff(`${year}-${month}-${day}`, 'years'),
             }
         }
     };
 
+    stampRelevance(user: Partial<User>) {
+        const problems = [] as string[];
+        if (!user.universities?.some(({ id }) => id === this.BMSTU_ID)) {
+            problems.push('Указаны университеты, но среди них нет МГТУ')
+        }
+        const graduationYear = 2020;
+        if (user.graduation && user.graduation < graduationYear) {
+            problems.push(`Год выпуска менее ${graduationYear}-го`);
+        }
+        const birthYear = 1995;
+        if (user.bdate && user.bdate.year < birthYear) {
+            problems.push(`Год рождения менее ${birthYear}`);
+        }
+        if (user.country?.id !== 1) {
+            problems.push(`В качестве страны указана не Россия`);
+        }
+        return problems.length ? { ...user, problems } : user;
+    }
+
     async process() {
         this.log(`Collecting groups members from vk...`);
-        type Document = GroupsGroup & { id: number; stopWords?: string[] }; // TODO: Move it to separate files
-
-        const groupsCollection = await this.mongo.getCollection<Document>(this.params.mongo.db, this.params.mongo.groupsCollection);
-        const cacheCollection = await this.mongo.getCollection(this.params.mongo.db, this.params.mongo.membersCacheCollection);
+        
+        const groupsCollection = await this.mongo.getCollection<Group>(this.params.mongo.db, this.params.mongo.groupsCollection);
+        const cacheCollection = await this.mongo.getCollection<Partial<User>>(this.params.mongo.db, this.params.mongo.membersCacheCollection);
         const membersCollection = await this.mongo.getCollection(this.params.mongo.db, this.params.mongo.membersCollection);
 
         const groups = await groupsCollection.find({
-            stopWords: null,
-            is_closed: 0
-        }).map(({ id, name }) => ({ id, name })).toArray();
+            stopWords: { $exists: false },
+        }).map(({ id, name, members_count }) => ({ id, name, members_count }))
+        .toArray()
+        this.log(JSON.stringify(groups));
 
-        this.log(`There is ${groups.length} vk groups in database...`);
+        this.log(`Fetched ${groups.length} vk groups from database...`);
+        await this.reportProgress(5);
+
+
+        const params = _.flatMap(groups, group => _.chain(group.members_count / 1000)
+            .ceil()
+            .range()
+            .map(offset => offset * 1000)
+            .map(offset => ({ ...group, count: 1000, offset }))
+            .slice(this.params.groups.skip)
+            .take(this.params.groups.limit)
+            .value()
+        );
+
+        this.log(`${params.length} requests to vk API are needed to collect all members...`);
         await this.reportProgress(10);
 
-        const groupsMembersCounts = await firstValueFrom(
-            of(...groups).pipe(
-                bufferCount(25),
-                mergeMap(async groups => zipShortest(
-                    groups,
-                    await this.vkApi.callButch('groups', 'getMembers',
-                        groups.map(({ id }) => ({
-                            group_id: String(id),
-                            count: 1000,
-                            fields: this.fields,
-                            offset: 0
-                        }))) as Array<GroupsGetMembersFieldsResponse | boolean>
-                ), 5),
-                tap(responses => this.log('Collected data for groups: ', responses.map(([group]) => group.name).join(', '))),
-                flatten(),
-                filter(([group, response]) => Boolean(response)), // Because of "Access denied: group hide members" error,
-                map(([group, response]) => ({ ...response as GroupsGetMembersFieldsResponse, group })),
-                bufferCount(Infinity),
-            ),
-        );
-
-
-        await this.reportProgress(20);
-        // const col = await this.save(groupsCounts);
-        // this.log(col);
-
-        const params = _.flatMap(groupsMembersCounts, group => _.range(1, Math.ceil(group.count / 1000))
-            .map(offset => offset * 1000)
-            .map(offset => ({ ...group, count: 1000, offset, }))
-        );
-
-        // await this.save(params);
-
-        this.log(`${params.length} requests to vk API are left to collect all members...`);
-        await this.reportProgress(25);
-
-        const writes: Promise<unknown>[] = [];
+        const writesToMembersCache: Promise<unknown>[] = [];
 
         const users = await firstValueFrom(
-            of(...params).pipe(
-                bufferCount(25),
+            from(params).pipe(
+                bufferCount(this.params.groups.bufferCount),
                 mergeMap(async params => zipShortest(
                     params,
                     await this.vkApi.callButch('groups', 'getMembers', params.map(
-                        ({ count, offset, group }) => ({
-                            count,
-                            offset,
+                        group => ({
+                            ...group,
                             group_id: String(group.id),
                             fields: this.fields
                         }),
                     )) as Array<GroupsGetMembersFieldsResponse | boolean>,
-                ), 10),
-                flatten(),
-                filter(([params, response]) => Boolean(response)), // Because of "Access denied: group hide members" error,
-                map(([{ group }, s]) => ({ ...s as GroupsGetMembersFieldsResponse, group })),
+                ), environment.CONCURRENCY_FACTOR),
+                mergeAll(),
+                filter(([group, response]) => Boolean(response)), // Because of "Access denied: group hide members" error,
+                map(([group, s]) => ({ ...s as GroupsGetMembersFieldsResponse, group })),
+                mergeMap(({ items, group }) => items.map(user => ({ ...user as User, group }))),
             ).pipe(
-                mergeWith(of(...groupsMembersCounts)), // Add results of earlier requests
-                mergeMap(({ items, group }) => items.map(user => ({ ...user as Partial<UsersUserFull1 & { id: number }>, group }))),
                 map(user => this.anonimizeUsers(user)),
-                map(user => this.parseDate(user)),
+                map(user => this.stampAge(user)),
+                map(user => this.stampRelevance(user)),
                 map(user => this.stampId(user)),
                 map(user => this.stampMeta(user)),
-                bufferCount(1000),
-                tap(users => writes.push(cacheCollection.insertMany(users, { ordered: false })
-                    .then(() => this.log('New portion of', users.length, 'user was succesfully saved')))),
+            ).pipe(
+                bufferTime(3000),
+                filter(arr => Boolean(arr.length)),
+                tap(users => writesToMembersCache.push(cacheCollection.insertMany(users, { ordered: false })
+                    .then(() => this.log(`New portion of ${users.length} user was succesfully saved`)))),
                 reduce((acc, users) => [...acc, ...users]),
-            )
+            ),
         );
 
-        await Promise.all(writes);
+        await Promise.all(writesToMembersCache);
         // TODO: Split processor into several little jobs (or at least preserve results in DB)
 
         await this.reportProgress(90);
         this.log(`Totally collected ${users.length} users. Merging duplicated users...`);
 
+        // function mapLodash<TInput, TOutput>(projection: (chain: LoDashExplicitWrapper<TInput>) => LoDashExplicitWrapper<TOutput>) {
+        //     return map((value: TInput) => projection(_.chain(value)).value());
+        // }
+
         const uniqUsers = await firstValueFrom(
             of(
-                ...await membersCollection.find().toArray() as typeof users,
+                await cacheCollection.find().toArray() as typeof users,
             ).pipe(
                 map(users => _(users)
-                    .groupBy((user: typeof users) => user.id)
+                    .groupBy(user => user.id)
                     .toPairs()
                     .map(([id, [user, ...copies]]) => ({
                         ...user,
-                        groups: [user, ...copies].map(({ group }) => group),
+                        group: [user, ...copies].map(({ group }) => group).filter(isNotNill),
                     }))
+                    .orderBy(user => user.group.length)
                     .value()
                 ),
                 mapArray(group => this.stampId(group)),
                 mapArray(group => this.stampMeta(group)),
-            )
+            ),
         );
 
         await this.reportProgress(95);
 
-
         this.log(`Successfully collected ${uniqUsers.length} users from VK.`);
-
 
         this.log(`Writing groups members to database...`);
         try {

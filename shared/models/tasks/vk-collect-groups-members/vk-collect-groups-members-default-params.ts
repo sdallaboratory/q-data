@@ -9,4 +9,9 @@ export const vkCollectGroupsMembersDefaultParams: VkCollectGroupsMembersParams =
         membersCacheCollection: 'groups_members_cache',
         db: environment.MONGO_DB,
     },
+    groups: {
+        bufferCount: 10,
+        skip: 0,
+        limit: 50,
+    }
 };

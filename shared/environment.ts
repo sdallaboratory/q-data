@@ -10,5 +10,7 @@ export const environment = {
     QUEUE_NAME_TASKS_BROWSER: 'BrowserTasks',
     JOB_ATTEMPTS: 5,
     COMPOSE_RUN_ID: _.random(0, 1000000),
-    VK_API_CALL_INTERVAL_MS: 500,
+    VK_API_CALL_INTERVAL_MS: 700,
+    CONCURRENCY_FACTOR: 5,
+    BROWSER_TASK_TIMEOUT_MS: 15000,
 } as const;

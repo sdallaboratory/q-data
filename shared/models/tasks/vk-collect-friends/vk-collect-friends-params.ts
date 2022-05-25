@@ -1,11 +1,11 @@
-export interface VkCollectGroupsMembersParams {
+export interface VkCollectFriendsParams {
     mongo: {
         db: string;
-        groupsCollection: string;
         membersCollection: string;
-        membersCacheCollection: string;
+        usersCollection: string;
+        usersCacheCollection: string;
     };
-    groups: {
+    members: {
         bufferCount: number,
         skip: number,
         /**
