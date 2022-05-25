@@ -4,7 +4,7 @@
   "description": "",
   "main": "main.ts",
   "scripts": {
-    "start": "nodemon --watch . --watch ../shared --ignore ./dist --ext json,ts,js --exec yarn serve:dev",
+    "start": "nodemon --watch ./ --watch ../shared/ --ignore ./dist --ext json,ts,js --exec yarn serve:dev",
     "serve:dev": "yarn build && yarn serve",
     "serve": "node ./dist/browser-workers-manager/src/main.js",
     "build": "tsc",
