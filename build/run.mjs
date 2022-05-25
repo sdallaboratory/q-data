@@ -5,9 +5,9 @@ export function run(command, stdio = true, cwd) {
     const [exe, ...args] = command.split(/\s+/g);
     return new Promise((resolve, reject) => {
         log('RUN');
-        const childProcess = spawn(exe, args, { stdio: stdio ? 'inherit' : 'ignore', cwd });
+        const childProcess = spawn(exe, args, { stdio: stdio ? 'inherit' : 'ignore', cwd, });
         childProcess.on('exit', (code) => {
-            if(code === 0) {
+            if (code === 0) {
                 resolve(code)
                 log('SUCCESS');
             } else {
