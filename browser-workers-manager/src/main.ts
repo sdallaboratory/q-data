@@ -16,13 +16,6 @@ const io = new Server(server, {
   maxHttpBufferSize: 1e8, // 100mb
 });
 
-// // TODO: Add cleat typings
-// const queue = new Queue<Task['params'], void, Task['name']>(environment.QUEUE_NAME_TASKS, {
-//   connection: {
-//     host: environment.REDIS_HOST,
-//     port: environment.REDIS_PORT,
-//   }
-// });
 
 io.on('connection', (socket) => {
   log('WebSocket', 'A new browser-worker connected', socket.id);
