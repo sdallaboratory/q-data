@@ -2,11 +2,7 @@ import express from 'express';
 import { log } from '../../shared/logger/log';
 import { Queue, QueueEvents } from 'bullmq';
 import { Task } from '../../shared/models/tasks/task';
-import { vkCollectGroupsDefaultParams } from '../../shared/models/tasks/vk-collect-groups/vk-collect-groups-default-params';
-import { vkCollectGroupsMembersDefaultParams } from '../../shared/models/tasks/vk-collect-groups-members/vk-collect-groups-members-default-params';
 import { environment } from '../../shared/environment';
-import { vkCollectFriendsDefaultParams } from '../../shared/models/tasks/vk-collect-friends/vk-collect-friends-default-params';
-import { vkMergeGroupsMembersDefaultParams } from '../../shared/models/tasks/vk-merge-groups-members/vk-merge-groups-members-default-params';
 
 const PORT = 3000;
 
@@ -53,28 +49,12 @@ app.post<string, unknown, unknown, Task>('/api/tasks', async (req, res) => {
 
 app.delete('/api/tasks', async (req, res) => {
     log('HTTP', `Removing tasks from queue`);
-    const removed = await Promise.all([
-        tasksQueue.clean(0, 0, 'delayed'),
-        tasksQueue.clean(0, 0, 'paused'),
-        tasksQueue.clean(0, 0, 'wait'),
-        tasksQueue.clean(0, 0, 'active'),
-    ]);
+    const types = ['delayed', 'wait', 'paused', 'active'] as const;
+    const promises = types.map(type => tasksQueue.clean(0, 0, type));
+    const removed = await Promise.all(promises);
     log('HTTP', `Removed tasks from queue ${removed.flatMap(t => t)}`);
     res.sendStatus(200);
 });
-
-/**
- * @deprecated The endpoint is added for testing purposes. Avoid using it as it can be removed at any time.
- */
-// app.post<string, unknown, unknown, Task>('/api/browser-tasks', async (req, res) => {
-//     const task = req.body;
-//     if (!task) {
-//         throw new Error('body must be presented');
-//     }
-//     await browserTasksQueue.add(task.name, task, { attempts: 5 });
-//     log('HTTP', `successfully created browser task ${task.name}`);
-//     res.sendStatus(201);
-// });
 
 // Starting server
 
