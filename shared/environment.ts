@@ -13,4 +13,4 @@ export const environment = {
     VK_API_CALL_INTERVAL_MS: 700,
     CONCURRENCY_FACTOR: 5,
     BROWSER_TASK_TIMEOUT_MS: 15000,
-} as const;
+};

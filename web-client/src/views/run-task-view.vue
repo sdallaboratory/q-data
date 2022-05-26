@@ -10,6 +10,7 @@
     Then press "Run task" to start execution.
     <Vue3JsonEditor v-model="selectedTask.params" :mode="'code'" @json-change="updateParams" />
     <button @click="runTask()">Run task</button>
+    <button @click="deleteJobs()">Delete all pending and running tasks</button>
   </template>
 </template>
 
@@ -60,6 +61,13 @@ export default class HomeView extends Vue {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify(this.selectedTask),
+    });
+  }
+
+  // eslint-disable-next-line class-methods-use-this
+  public async deleteJobs() {
+    await fetch('/api/tasks', {
+      method: 'DELETE',
     });
   }
 }

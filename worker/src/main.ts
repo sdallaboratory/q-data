@@ -3,14 +3,30 @@ import { Job, Worker } from 'bullmq';
 import { environment } from '../../shared/environment';
 import { log } from '../../shared/logger/log';
 import { container } from 'tsyringe';
-import { processorsRegistry } from './processors/registry/processors-registry';
-import { JobProcessorExecutor } from './processors/job-processor';
-import "./processors/vk-collect-groups/vk-collect-groups.processor";
-import "./processors/vk-collect-groups/vk-collect-groups-members.processor";
-import "./processors/vk-collect-groups/vk-collect-friends.processor";
+import { JobProcessor } from './processors/job-processor';
+import { VkCollectFriends } from './processors/processors/vk-collect-friends.processor';
+import { ProcessorsRegistry } from './processors/registry/processors-registry';
+import { VkCollectGroups } from './processors/processors/vk-collect-groups.processor';
+import { VkCollectGroupsMembers } from './processors/processors/vk-collect-groups-members.processor';
+import { VkMergeGroupsMembers } from './processors/processors/vk-merge-groups-members.processor';
+import { vkCollectGroupsDefaultParams } from '../../shared/models/tasks/params/vk-collect-groups-default-params';
+import { vkCollectGroupsMembersDefaultParams } from '../../shared/models/tasks/params/vk-collect-groups-members-default-params';
+import { vkMergeGroupsMembersDefaultParams } from '../../shared/models/tasks/params/vk-merge-groups-members-default-params';
+import { vkCollectFriendsDefaultParams } from '../../shared/models/tasks/params/vk-collect-friends-default-params';
+import { SystemGetJobsList } from './processors/processors/system-get-jobs-list.processor';
+
+const registry = container.resolve(ProcessorsRegistry);
+
+registry.registerAll(
+    { processor: VkCollectGroups, defaultParams: vkCollectGroupsDefaultParams },
+    { processor: VkCollectGroupsMembers, defaultParams: vkCollectGroupsMembersDefaultParams },
+    { processor: VkMergeGroupsMembers, defaultParams: vkMergeGroupsMembersDefaultParams },
+    { processor: VkCollectFriends, defaultParams: vkCollectFriendsDefaultParams },
+    { processor: SystemGetJobsList },
+);
 
 async function runJob(job: Job) {
-    const Processor = processorsRegistry.get(job.name);
+    const Processor = registry.get(job.name)?.processor;
     if (!Processor) {
         const message = `No appropriate processor found for task ${job.name}`;
         log('System', message);
@@ -18,10 +34,10 @@ async function runJob(job: Job) {
     }
     const jobContainer = container.createChildContainer();
     jobContainer.register(Job, { useValue: job });
-    const processor = jobContainer.resolve(Processor) as JobProcessorExecutor;
-    log('System', `Successfully matched processor for task ${job.name}. Starting processing...`);
+    const processor = jobContainer.resolve(Processor) as JobProcessor;
+    log('System', `Successfully matched processor (${Processor.name}) for task ${job.name}. Starting processing...`);
     const result = await processor.process();
-    processor.dispose();
+    processor.dispose?.();
     jobContainer.reset();
     return result;
 }

@@ -1,8 +1,6 @@
-import _ from 'lodash';
 import { environment } from '../../../environment'
-import { VkCollectFriendsParams } from './vk-collect-friends-params'
 
-export const vkCollectFriendsDefaultParams: VkCollectFriendsParams = {
+export const vkCollectFriendsDefaultParams = {
     mongo: {
         db: environment.MONGO_DB,
         membersCollection: 'groups_members',
@@ -10,8 +8,10 @@ export const vkCollectFriendsDefaultParams: VkCollectFriendsParams = {
         usersCacheCollection: 'users_friends_cache',
     },
     members: {
-        bufferCount: 10,
+        bufferCount: 25,
         skip: 0,
-        limit: 15,
+        limit: 0,
     },
 };
+
+export type VkCollectFriendsParams = typeof vkCollectFriendsDefaultParams;

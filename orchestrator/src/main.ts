@@ -1,31 +1,28 @@
 import express from 'express';
 import { log } from '../../shared/logger/log';
-import { Queue } from 'bullmq';
+import { Queue, QueueEvents } from 'bullmq';
 import { Task } from '../../shared/models/tasks/task';
 import { vkCollectGroupsDefaultParams } from '../../shared/models/tasks/vk-collect-groups/vk-collect-groups-default-params';
 import { vkCollectGroupsMembersDefaultParams } from '../../shared/models/tasks/vk-collect-groups-members/vk-collect-groups-members-default-params';
 import { environment } from '../../shared/environment';
 import { vkCollectFriendsDefaultParams } from '../../shared/models/tasks/vk-collect-friends/vk-collect-friends-default-params';
+import { vkMergeGroupsMembersDefaultParams } from '../../shared/models/tasks/vk-merge-groups-members/vk-merge-groups-members-default-params';
 
 const PORT = 3000;
-const REDIS_HOST = 'redis';
-const REDIS_PORT = 6379;
-const QUEUE_NAME_TASKS = 'Tasks'
-const QUEUE_NAME_TASKS_BROWSER = 'BrowserTasks';
 
 const app = express();
 app.use(express.json());
 
-// TODO: Add sctrict concrete typing for generics
-const [tasksQueue, browserTasksQueue] = [
-    QUEUE_NAME_TASKS,
-    QUEUE_NAME_TASKS_BROWSER
-].map(name => new Queue(name, {
+const PARAMS = {
     connection: {
-        host: REDIS_HOST,
-        port: REDIS_PORT,
+        host: environment.REDIS_HOST,
+        port: environment.REDIS_PORT,
     },
-}));
+};
+
+// TODO: Add sctrict concrete typing for generics
+const tasksQueue = new Queue(environment.QUEUE_NAME_TASKS, PARAMS);
+const tasksQueueEvents = new QueueEvents(environment.QUEUE_NAME_TASKS, PARAMS);
 
 app.use((req, res, next) => {
     log('HTTP', `request on ${req.method} ${req.url}`);
@@ -34,30 +31,10 @@ app.use((req, res, next) => {
 
 // Routes
 
-// app.get('/api/jobs', async (req, res) => {
-//     const jobs = await queue.getJobs();
-//     res.send(jobs.map(job  => job.asJSON()));
-// });
-
 app.get('/api/tasks', async (req, res) => {
-    // TODO: Retrieve registered works from workers via dedicated Queue
-    res.send([
-        {
-            name: 'vk-collect-groups',
-            type: 'default',
-            params: vkCollectGroupsDefaultParams, // TODO: Remove code reference to worker repo. Move to Shared.
-        } as Task,
-        {
-            name: 'vk-collect-groups-members',
-            type: 'default',
-            params: vkCollectGroupsMembersDefaultParams, // TODO: Remove code reference to worker repo. Move to Shared.
-        } as Task,
-        {
-            name: 'vk-collect-friends',
-            type: 'default',
-            params: vkCollectFriendsDefaultParams, // TODO: Remove code reference to worker repo. Move to Shared.
-        } as Task,
-    ]);
+    const job = await tasksQueue.add('SystemGetJobsList', {});
+    const result = await job.waitUntilFinished(tasksQueueEvents);
+    res.send(result);
 });
 
 app.post<string, unknown, unknown, Task>('/api/tasks', async (req, res) => {
@@ -70,25 +47,37 @@ app.post<string, unknown, unknown, Task>('/api/tasks', async (req, res) => {
     }
     const options = task.options || {};
     const job = await tasksQueue.add(task.name, task.params, { attempts: environment.JOB_ATTEMPTS, ...options });
-    log('System', `successfully created task ${task.name}.`);
+    log('HTTP', `successfully created task ${task.name}.`);
     res.status(201).send(job);
+});
+
+app.delete('/api/tasks', async (req, res) => {
+    log('HTTP', `Removing tasks from queue`);
+    const removed = await Promise.all([
+        tasksQueue.clean(0, 0, 'delayed'),
+        tasksQueue.clean(0, 0, 'paused'),
+        tasksQueue.clean(0, 0, 'wait'),
+        tasksQueue.clean(0, 0, 'active'),
+    ]);
+    log('HTTP', `Removed tasks from queue ${removed.flatMap(t => t)}`);
+    res.sendStatus(200);
 });
 
 /**
  * @deprecated The endpoint is added for testing purposes. Avoid using it as it can be removed at any time.
  */
-app.post<string, unknown, unknown, Task>('/api/browser-tasks', async (req, res) => {
-    const task = req.body;
-    if (!task) {
-        throw new Error('body must be presented');
-    }
-    await browserTasksQueue.add(task.name, task, { attempts: 5 });
-    log('System', `successfully created browser task ${task.name}`);
-    res.sendStatus(201);
-});
+// app.post<string, unknown, unknown, Task>('/api/browser-tasks', async (req, res) => {
+//     const task = req.body;
+//     if (!task) {
+//         throw new Error('body must be presented');
+//     }
+//     await browserTasksQueue.add(task.name, task, { attempts: 5 });
+//     log('HTTP', `successfully created browser task ${task.name}`);
+//     res.sendStatus(201);
+// });
 
 // Starting server
 
 app.listen(PORT, () => {
-    log('System', `Server is up and listening on port ${PORT}`);
+    log('HTTP', `Server is up and listening on port ${PORT}`);
 });

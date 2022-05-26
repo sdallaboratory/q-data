@@ -1,8 +1,7 @@
 import _ from 'lodash';
-import { environment } from '../../../environment'
-import { VkCollectGroupsParams } from './vk-collect-groups-params'
+import { environment } from '../../../environment';
 
-export const vkCollectGroupsDefaultParams: VkCollectGroupsParams = {
+export const vkCollectGroupsDefaultParams = {
     mongo: {
         collection: 'groups',
         db: environment.MONGO_DB,
@@ -53,3 +52,5 @@ export const vkCollectGroupsDefaultParams: VkCollectGroupsParams = {
         caseSensitive: ['ГА', 'ЖК', 'Носов', 'Яблонов', 'МАИ', 'МАМИ', 'МИФИ', 'СОШ'],
     },
 };
+
+export type VkCollectGroupsParams = typeof vkCollectGroupsDefaultParams; 

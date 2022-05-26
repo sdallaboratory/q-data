@@ -4,16 +4,16 @@ import { environment } from '../../../shared/environment';
 import { Disposable } from '../../../shared/interfaces/disposable';
 import { log } from '../../../shared/logger/log';
 import { MongoService } from '../services/mongo.service';
-import { JobProcessorExecutor } from './job-processor';
+import { JobProcessor } from './job-processor';
 
 /**
- * You should implements this class to create a Processor.
- * Processor syntactically is a async function which get's jobs data
- * and services from IoC container.
+ * You should implements this class to create a Processor with useful databse utilities.
+ * 
+ * Processor syntactically is a class with async `process` function which get's jobs data.
  * 
  * Basic class provides several useful utility properties and methods.
  */
-export abstract class JobDbProcessorExecutor<TJob extends Job = Job> extends JobProcessorExecutor<TJob> {
+export abstract class JobDbProcessor<TJob extends Job = Job> extends JobProcessor<TJob> {
 
     constructor(
         protected readonly job: TJob,

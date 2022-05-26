@@ -5,24 +5,17 @@ import { inject } from "tsyringe";
 import { GroupsFields, GroupsGroup } from "vk-io/lib/api/schemas/objects";
 import { environment } from "../../../../shared/environment";
 import { log } from "../../../../shared/logger/log";
-import { vkCollectGroupsDefaultParams } from "../../../../shared/models/tasks/vk-collect-groups/vk-collect-groups-default-params";
-import { VkCollectGroupsParams } from "../../../../shared/models/tasks/vk-collect-groups/vk-collect-groups-params";
+import { VkCollectGroupsParams } from "../../../../shared/models/tasks/params/vk-collect-groups-default-params";
 import { isNotNill } from "../../../../shared/utils/is-not-nill";
 import { mapArray } from "../../../../shared/utils/rxjs/operators/map-array";
 import { zipShortest } from "../../../../shared/utils/zip-shortest";
 import { MongoService } from "../../services/mongo.service";
 import { VkApiService } from "../../services/vk-api.service";
-import { JobProcessorExecutor } from "../job-processor";
-import { JobProcessor } from "../registry/job-processor.decorator";
+import { JobProcessor } from "../job-processor";
 
-// TODO: Solve problem with this type at "../../../../shared/models/tasks/vk-collect-groups/vk-collect-groups-job"
-export type VkCollectGroupsJob = Job<VkCollectGroupsParams, void, 'vk-collect-groups'>;
+type VkCollectGroupsJob = Job<VkCollectGroupsParams, void, 'vk-collect-groups'>;
 
-@JobProcessor({
-    taskName: 'vk-collect-groups',
-    defaultParams: vkCollectGroupsDefaultParams,
-})
-export class VkCollectGroups extends JobProcessorExecutor<VkCollectGroupsJob> {
+export class VkCollectGroups extends JobProcessor<VkCollectGroupsJob> {
 
     constructor(
         @inject(Job) protected readonly job: VkCollectGroupsJob,
@@ -70,7 +63,7 @@ export class VkCollectGroups extends JobProcessorExecutor<VkCollectGroupsJob> {
                 bufferCount(5),
                 mergeMap(async chunk => zipShortest(
                     _.flattenDeep(chunk),
-                    _.flattenDeep(await this.vkApi.callButch('groups', 'getById', chunk.map(groups => ({
+                    _.flattenDeep(await this.vkApi.call('groups', 'getById', chunk.map(groups => ({
                         group_ids: groups.map(g => g.id).filter(isNotNill),
                         fields: this.fields,
                     }))))

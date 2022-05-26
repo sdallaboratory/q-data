@@ -1,31 +1,29 @@
 import { JobsOptions } from 'bullmq';
-import { VkCollectFriendsParams } from './vk-collect-friends/vk-collect-friends-params';
-import { VkCollectGroupsMembersParams } from './vk-collect-groups-members/vk-collect-groups-members-params';
-import { VkCollectGroupsParams } from './vk-collect-groups/vk-collect-groups-params';
+import { VkCollectFriendsParams } from './params/vk-collect-friends-default-params';
+import { VkCollectGroupsParams } from './params/vk-collect-groups-default-params';
+import { VkCollectGroupsMembersParams } from './params/vk-collect-groups-members-default-params';
+import { VkMergeGroupsMembersParams } from './params/vk-merge-groups-members-default-params';
 
 export type Task = {
     options?: JobsOptions;
+    type: 'default';
 } & BaseTask;
 
 type BaseTask = {
-    name: 'vk-collect-groups';
-    type: 'default';
-    params: VkCollectGroupsParams;
-    /**
-     * Currently unsupported. Allows specify native BullMQ job options.
-     */
-} | {
-    name: 'vk-collect-groups-members';
-    type: 'default';
-    params: VkCollectGroupsMembersParams;
-    /**
-     * Currently unsupported. Allows specify native BullMQ job options.
-     */
-} | {
-    name: 'vk-collect-friends';
-    type: 'default';
-    params: VkCollectFriendsParams;
-    /**
-     * Currently unsupported. Allows specify native BullMQ job options.
-     */
-}// | { ... } TODO: Add all implemented tasks here
+    name: string;
+    params: object;
+}
+
+// type BaseTask = {
+//     name: 'VkCollectGroupsParams';
+//     params: VkCollectGroupsParams;
+// } | {
+//     name: 'VkCollectGroupsMembersParams';
+//     params: VkCollectGroupsMembersParams;
+// } | {
+//     name: 'VkCollectFriendsParams';
+//     params: VkCollectFriendsParams;
+// } | {
+//     name: 'VkMergeGroupsMembersParams';
+//     params: VkMergeGroupsMembersParams;
+// }

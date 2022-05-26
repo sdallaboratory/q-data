@@ -11,7 +11,7 @@ import { log } from '../../../shared/logger/log';
  * 
  * Basic class provides several useful utility properties and methods.
  */
-export abstract class JobProcessorExecutor<TJob extends Job = Job> implements Disposable {
+export abstract class JobProcessor<TJob extends Job = Job> implements Partial<Disposable> {
 
     protected abstract readonly job: TJob;
     protected readonly worker?: Worker;
@@ -58,11 +58,12 @@ export abstract class JobProcessorExecutor<TJob extends Job = Job> implements Di
      * @param args args to log
      */
     protected log(...args: (string | number)[]) {
-        log('System', args.join(', '), this.job.id)
+        const message = log('System', args.join(', '), this.job.id)
+        this.job.log(message);
     }
 
     abstract process(): Promise<TJob extends Job<any, infer U> ? U : never>;
-    abstract dispose(): void | Promise<void>;
+    abstract dispose?(): void | Promise<void>;
 
     /**
      * Checkes specified params object for validity 
