@@ -4,10 +4,13 @@ type Group = {
     id: number;
     name?: string;
     members_count?: number;
+    count?: number;
+    offset?: number;
 };
 
 export type UserBase = Partial<UsersUserFull1> & {
     id: number;
+    sex: 0 | 1 | 2;
     bdate?: {
         year: number;
         age: number;

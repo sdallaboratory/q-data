@@ -14,6 +14,8 @@ import { vkCollectGroupsMembersDefaultParams } from '../../shared/models/tasks/p
 import { vkMergeGroupsMembersDefaultParams } from '../../shared/models/tasks/params/vk-merge-groups-members-default-params';
 import { vkCollectFriendsDefaultParams } from '../../shared/models/tasks/params/vk-collect-friends-default-params';
 import { SystemGetJobsList } from './processors/processors/system-get-jobs-list.processor';
+import { BuildGraph } from './processors/processors/build-graph';
+import { BuildGraphDefaultParams } from '../../shared/models/tasks/params/build-graph-default-params';
 
 const registry = container.resolve(ProcessorsRegistry);
 
@@ -23,6 +25,7 @@ registry.registerAll(
     { processor: VkMergeGroupsMembers, defaultParams: vkMergeGroupsMembersDefaultParams },
     { processor: VkCollectFriends, defaultParams: vkCollectFriendsDefaultParams },
     { processor: SystemGetJobsList },
+    { processor: BuildGraph, defaultParams: BuildGraphDefaultParams },
 );
 
 async function runJob(job: Job) {

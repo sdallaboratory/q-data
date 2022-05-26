@@ -2,7 +2,7 @@ import { Job } from "bullmq";
 import _ from "lodash";
 import moment from "moment";
 import { firstValueFrom, of, map } from "rxjs";
-import { inject } from "tsyringe";
+import { inject, injectable } from "tsyringe";
 import { CachedMember, User } from "../../../../shared/models/entities/user";
 import { isNotNill } from "../../../../shared/utils/is-not-nill";
 import { mapArray } from "../../../../shared/utils/rxjs/operators/map-array";
@@ -13,6 +13,7 @@ import { VkMergeGroupsMembersParams } from "../../../../shared/models/tasks/para
 
 type VkMergeGroupsMembersJob = Job<VkMergeGroupsMembersParams, void, 'vk-collect-groups-members'>;
 
+@injectable()
 export class VkMergeGroupsMembers extends JobDbProcessor<VkMergeGroupsMembersJob> {
 
     private readonly BMSTU_ID = 250;

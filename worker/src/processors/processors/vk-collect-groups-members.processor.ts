@@ -1,7 +1,7 @@
 import { Job } from "bullmq";
 import _ from "lodash";
 import { firstValueFrom, mergeMap, map, bufferCount, filter, tap, reduce, bufferTime, mergeAll, from } from "rxjs";
-import { inject } from "tsyringe";
+import { inject, injectable } from "tsyringe";
 import { UsersFields } from "vk-io/lib/api/schemas/objects";
 import { GroupsGetMembersFieldsResponse } from "vk-io/lib/api/schemas/responses";
 import { environment } from "../../../../shared/environment";
@@ -15,6 +15,7 @@ import { VkCollectGroupsMembersParams } from "../../../../shared/models/tasks/pa
 
 type VkCollectGroupsMembersJob = Job<VkCollectGroupsMembersParams, void, 'vk-merge-groups-members'>;
 
+@injectable()
 export class VkCollectGroupsMembers extends JobDbProcessor<VkCollectGroupsMembersJob> {
 
     private readonly fields = [
@@ -26,6 +27,7 @@ export class VkCollectGroupsMembers extends JobDbProcessor<VkCollectGroupsMember
         'city',
         'country',
         'home_town',
+        'status',
     ] as UsersFields[];
 
     constructor(

@@ -1,7 +1,7 @@
 import { Job } from "bullmq";
 import _ from "lodash";
 import { firstValueFrom, of, mergeMap, map, reduce, bufferCount, mergeAll } from "rxjs";
-import { inject } from "tsyringe";
+import { inject, injectable } from "tsyringe";
 import { GroupsFields, GroupsGroup } from "vk-io/lib/api/schemas/objects";
 import { environment } from "../../../../shared/environment";
 import { log } from "../../../../shared/logger/log";
@@ -15,6 +15,7 @@ import { JobProcessor } from "../job-processor";
 
 type VkCollectGroupsJob = Job<VkCollectGroupsParams, void, 'vk-collect-groups'>;
 
+@injectable()
 export class VkCollectGroups extends JobProcessor<VkCollectGroupsJob> {
 
     constructor(

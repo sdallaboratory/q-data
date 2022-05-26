@@ -1,7 +1,7 @@
 import { Job } from "bullmq";
 import _ from "lodash";
 import { firstValueFrom, mergeMap, map, bufferCount, filter, tap, bufferTime, mergeAll, from } from "rxjs";
-import { inject } from "tsyringe";
+import { inject, injectable } from "tsyringe";
 import { environment } from "../../../../shared/environment";
 import { User } from "../../../../shared/models/entities/user";
 import { VkCollectFriendsParams } from "../../../../shared/models/tasks/params/vk-collect-friends-default-params";
@@ -12,6 +12,7 @@ import { JobDbProcessor } from "../job-db-processor";
 
 type VkCollectFriendsJob = Job<VkCollectFriendsParams, void, 'vk-collect-groups-members'>;
 
+@injectable()
 export class VkCollectFriends extends JobDbProcessor<VkCollectFriendsJob> {
 
     constructor(

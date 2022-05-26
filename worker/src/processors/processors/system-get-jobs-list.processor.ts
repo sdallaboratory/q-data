@@ -1,9 +1,10 @@
 import { Job } from "bullmq";
 import _ from "lodash";
-import { container, inject } from "tsyringe";
+import { container, inject, injectable, singleton } from "tsyringe";
 import { JobProcessor } from "../job-processor";
 import { ProcessorsRegistry } from "../registry/processors-registry";
 
+@injectable()
 export class SystemGetJobsList extends JobProcessor {
 
     dispose() { }
